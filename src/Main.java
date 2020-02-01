@@ -15,11 +15,17 @@ public class Main {
         while (running) {
             System.out.print("httpc> ");
             String input = kb.nextLine().trim();
+            String[] arguments = input.split(" ");
+            String requestType = arguments[0];
 
             if (input.equalsIgnoreCase("/q")) {
                 running = false;
-            } else if (input.contains("help")) {
-                client.help(input);
+            } else if (requestType.equalsIgnoreCase("help")) {
+                client.HELP(input);
+            } else if (requestType.equalsIgnoreCase("get")) {
+                client.GET(arguments);
+            } else if (requestType.equalsIgnoreCase("post")) {
+                client.POST(arguments);
             } else {
                 System.out.println("Invalid command. Input help for help");
             }
