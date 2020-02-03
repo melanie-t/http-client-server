@@ -1,19 +1,105 @@
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.URL;
+import java.util.Scanner;
+
 public class Httpc {
 
-    public void init() {}
+    public Httpc() {
+        init();
+    }
 
-    // httpc get [-v] [-h key:value] URL
-    public void GET(String[] input) {
+    private void init() {
+        System.out.println("Welcome to httpc. To quit the application, enter /q");
+
+        Scanner kb = new Scanner(System.in);
+        boolean running = true;
+        while (running) {
+            System.out.print("httpc> ");
+            String requestType = kb.next();
+            String input = kb.nextLine().trim();
+
+            if (requestType.equalsIgnoreCase("/q")) {
+                running = false;
+            } else if (requestType.equalsIgnoreCase("help")) {
+                HELP(input);
+            } else if (requestType.equalsIgnoreCase("get")) {
+                GET(input);
+            } else if (requestType.equalsIgnoreCase("post")) {
+                POST(input);
+            } else {
+                System.out.println("Invalid command. Input help for help");
+            }
+        }
+        System.out.println("Httpc terminated successfully");
+    }
+
+    // get [-v] [-h key:value] URL
+    private void GET(String input) {
         System.out.println("GET METHOD");
     }
 
-    // httpc post [-v] [-h key:value] [-d inline-data] [-f file] URL
-    public void POST(String[] input) {
-        System.out.println("POST METHOD");
-        // Process input
+    // post [-v] [-h key:value] [-d inline-data] [-f file] URL
+    private void POST(String input) {
+        // TO-DO Process input for headers, body and URL
+        String requestType = "POST ";
+        String web = "http://httpbin.org/post";
+        String body = "{"
+                + "\"key1\":value1,"
+                + "\"key2\":value2"
+                + "}";
+        String headers = "Content-Type:application/application/json\r\n"
+                + "Content-Length: " + body.length() + "\r\n"
+                + "\r\n";
+        boolean verbose = input.contains("-v");
+        try {
+            send_request(requestType, web, body, headers, verbose);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    public void HELP(String input) {
+    private void send_request(String requestType, String web, String body, String headers, boolean verbose) throws Exception {
+        URL url = new URL(web);
+        String host = url.getHost();
+        String path = url.getPath();
+        String query = url.getQuery();
+        if (query != null) {
+            query = "?" + query;
+        } else
+            query = "";
+
+        // Create socket using standard port 80 for web
+        Socket socket = new Socket(host, 80);
+
+        String post_request = requestType + path + query + " HTTP/1.0\r\n"
+                + headers + body;
+
+        InputStream inputStream = socket.getInputStream();
+        OutputStream outputStream = socket.getOutputStream();
+
+        outputStream.write(post_request.getBytes());
+        outputStream.flush();
+
+        StringBuilder response = new StringBuilder();
+
+        int data = inputStream.read();
+
+        while(data != -1) {
+            response.append((char) data);
+            data = inputStream.read();
+        }
+        if (verbose) {
+            System.out.println(response);
+        } else {
+            System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+        }
+        socket.close();
+    }
+
+    private void HELP(String input) {
         if (input.contains("get")) {
             System.out.println("Usage: httpc get [-v] [-h key:value] URL" +
                     "\n\n" + "Get executes a HTTP GET request for a given URL. " +
