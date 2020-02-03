@@ -44,56 +44,59 @@ public class Httpc {
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
     private void POST(String input) {
         // TO-DO Process input for headers, body and URL
+        String requestType = "POST ";
+        String web = "http://httpbin.org/post";
         String body = "{"
                 + "\"key1\":value1,"
                 + "\"key2\":value2"
                 + "}";
-
-        String web = "http://httpbin.org/post";
-
+        String headers = "Content-Type:application/application/json\r\n"
+                + "Content-Length: " + body.length() + "\r\n"
+                + "\r\n";
+        boolean verbose = input.contains("-v");
         try {
-            URL url = new URL(web);
-            String host = url.getHost();
-            String path = url.getPath();
-            String query = url.getQuery();
-            if (query != null) {
-                query = "?" + query;
-            } else
-                query = "";
-
-            // Create socket using standard port 80 for web
-            Socket socket = new Socket(host, 80);
-
-            String post_request = "POST " + path + query + " HTTP/1.0\r\n"
-                    + "Content-Type:application/application/json\r\n"
-                    + "Content-Length: " + body.length() + "\r\n"
-                    + "\r\n"
-                    + body;
-
-            InputStream inputStream = socket.getInputStream();
-            OutputStream outputStream = socket.getOutputStream();
-
-            outputStream.write(post_request.getBytes());
-            outputStream.flush();
-
-            StringBuilder response = new StringBuilder();
-
-            int data = inputStream.read();
-
-            while(data != -1) {
-                response.append((char) data);
-                data = inputStream.read();
-            }
-
-            if (input.contains("-v")) {
-                System.out.println(response);
-            } else {
-                System.out.println(response.substring(response.indexOf("\r\n\r\n")).trim());
-            }
-            socket.close();
+            send_request(requestType, web, body, headers, verbose);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void send_request(String requestType, String web, String body, String headers, boolean verbose) throws Exception {
+        URL url = new URL(web);
+        String host = url.getHost();
+        String path = url.getPath();
+        String query = url.getQuery();
+        if (query != null) {
+            query = "?" + query;
+        } else
+            query = "";
+
+        // Create socket using standard port 80 for web
+        Socket socket = new Socket(host, 80);
+
+        String post_request = requestType + path + query + " HTTP/1.0\r\n"
+                + headers + body;
+
+        InputStream inputStream = socket.getInputStream();
+        OutputStream outputStream = socket.getOutputStream();
+
+        outputStream.write(post_request.getBytes());
+        outputStream.flush();
+
+        StringBuilder response = new StringBuilder();
+
+        int data = inputStream.read();
+
+        while(data != -1) {
+            response.append((char) data);
+            data = inputStream.read();
+        }
+        if (verbose) {
+            System.out.println(response);
+        } else {
+            System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+        }
+        socket.close();
     }
 
     private void HELP(String input) {
