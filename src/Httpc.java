@@ -44,7 +44,6 @@ public class Httpc {
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
     private void POST(String input) {
         // TO-DO Process input for headers, body and URL
-
         String body = "{"
                 + "\"key1\":value1,"
                 + "\"key2\":value2"
@@ -56,11 +55,16 @@ public class Httpc {
             URL url = new URL(web);
             String host = url.getHost();
             String path = url.getPath();
+            String query = url.getQuery();
+            if (query != null) {
+                query = "?" + query;
+            } else
+                query = "";
 
             // Create socket using standard port 80 for web
             Socket socket = new Socket(host, 80);
 
-            String post_request = "POST " + path + " HTTP/1.0\r\n"
+            String post_request = "POST " + path + query + " HTTP/1.0\r\n"
                     + "Content-Type:application/application/json\r\n"
                     + "Content-Length: " + body.length() + "\r\n"
                     + "\r\n"
