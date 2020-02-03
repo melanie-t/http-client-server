@@ -38,12 +38,22 @@ public class Httpc {
 
     // get [-v] [-h key:value] URL
     private void GET(String input) {
-        System.out.println("GET METHOD");
+        // TO-DO Process input for web, body and headers
+        String requestType = "GET ";
+        String web = "http://httpbin.org/status/418";
+        String headers = "Content-Type:application/application/json\r\n"
+                + "\r\n";
+        boolean verbose = input.contains("-v");
+        try {
+            send_request(requestType, web, "", headers, verbose);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
     private void POST(String input) {
-        // TO-DO Process input for headers, body and URL
+        // TO-DO Process input for web, body and headers
         String requestType = "POST ";
         String web = "http://httpbin.org/post";
         String body = "{"
