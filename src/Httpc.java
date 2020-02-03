@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.URL;
 import java.util.Scanner;
 
 public class Httpc {
@@ -42,27 +43,33 @@ public class Httpc {
 
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
     private void POST(String input) {
-        System.out.println("POST METHOD");
+        // TO-DO Process input for headers, body and URL
 
-        // Process input
+        String body = "{"
+                + "\"key1\":value1,"
+                + "\"key2\":value2"
+                + "}";
 
-        // Create socket with URL and Port
-        String host = "httpbin.org";
-        int port = 80;
-        String body = "key1=value1&key2=value2";
-        String request = "POST /post HTTP/1.0\r\n"
-                + "Content-Type:application/x-www-form-urlencoded\r\n"
-                + "Content-Length: " + body.length() +"\r\n"
-                + "\r\n"
-                + body;
+        String web = "http://httpbin.org/post";
 
         try {
-            Socket socket = new Socket(host, port);
+            URL url = new URL(web);
+            String host = url.getHost();
+            String path = url.getPath();
+
+            // Create socket using standard port 80 for web
+            Socket socket = new Socket(host, 80);
+
+            String post_request = "POST " + path + " HTTP/1.0\r\n"
+                    + "Content-Type:application/application/json\r\n"
+                    + "Content-Length: " + body.length() + "\r\n"
+                    + "\r\n"
+                    + body;
 
             InputStream inputStream = socket.getInputStream();
             OutputStream outputStream = socket.getOutputStream();
 
-            outputStream.write(request.getBytes());
+            outputStream.write(post_request.getBytes());
             outputStream.flush();
 
             StringBuilder response = new StringBuilder();
@@ -74,7 +81,11 @@ public class Httpc {
                 data = inputStream.read();
             }
 
-            System.out.println(response);
+            if (input.contains("-v")) {
+                System.out.println(response);
+            } else {
+                System.out.println(response.substring(response.indexOf("\r\n\r\n")).trim());
+            }
             socket.close();
         } catch (Exception e) {
             e.printStackTrace();
