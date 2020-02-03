@@ -1,6 +1,35 @@
+import java.util.Scanner;
 public class Httpc {
 
     public void init() {}
+    public Httpc() {
+        init();
+    }
+
+    private void init() {
+        System.out.println("Welcome to httpc. To quit the application, enter /q");
+
+        Scanner kb = new Scanner(System.in);
+        boolean running = true;
+        while (running) {
+            System.out.print("httpc> ");
+            String requestType = kb.next();
+            String input = kb.nextLine().trim();
+
+            if (requestType.equalsIgnoreCase("/q")) {
+                running = false;
+            } else if (requestType.equalsIgnoreCase("help")) {
+                HELP(input);
+            } else if (requestType.equalsIgnoreCase("get")) {
+                GET(input);
+            } else if (requestType.equalsIgnoreCase("post")) {
+                POST(input);
+            } else {
+                System.out.println("Invalid command. Input help for help");
+            }
+        }
+        System.out.println("Httpc terminated successfully");
+    }
 
     // httpc get [-v] [-h key:value] URL
     public void GET(String[] input) {
