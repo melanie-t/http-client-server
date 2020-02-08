@@ -67,6 +67,7 @@ public class Httpc {
         // TODO (Ziad) Process data
         // This is the data format
         if (input.contains("-d") || input.contains("f"))  {
+            // input = -d {"key1": 1, "key2": value2}'
             data = "{"
                     + "\"key1\":value1,"
                     + "\"key2\":value2"
