@@ -36,16 +36,70 @@ public class Httpc {
         System.out.println("Httpc terminated successfully");
     }
 
+    private String[] parseInput(String input) {
+        String[] parameters = new String[]{"web", "header", "data"};
+        String web = "";
+        String headers = "";
+        String data = "";
+
+        StringBuilder headerBuilder = new StringBuilder();
+
+        if (input.contains("-h")) {
+            while(input.contains("-h")) {
+                // indexHeaderFlag is the index of -h in the input string, and +2 because we want to splice -h
+                int indexHeaderFlag = input.indexOf("-h")+2;
+
+                // Remove -h argument from input string
+                input = input.substring(indexHeaderFlag).trim();
+
+                // indexHeaderEnd marks the end of the header key/value which is denoted by a space
+                int indexHeaderEnd = input.indexOf(" ");
+                String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
+                headerBuilder.append(headerKeyValue + "\r\n");
+
+                // Remove processed header key-value pair
+                input = input.substring(indexHeaderEnd).trim();
+            }
+            headerBuilder.append("\r\n");
+            headers = headerBuilder.toString();
+        }
+
+        // TODO (Ziad) Process data
+        // This is the data format
+        if (input.contains("-d") || input.contains("f"))  {
+            data = "{"
+                    + "\"key1\":value1,"
+                    + "\"key2\":value2"
+                    + "}";
+        }
+
+        // All arguments (-v, -h, -d, -f) are all processed, so all that's left is the URL
+        web = input.replace("'", "").trim();
+
+        parameters[0] = web;
+        parameters[1] = headers;
+        parameters[2] = data;
+
+        return parameters;
+    }
+
     // get [-v] [-h key:value] URL
     private void GET(String input) {
-        // TO-DO Process input for web, body and headers
-        String requestType = "GET ";
-        String web = "http://httpbin.org/status/418";
-        String headers = "Content-Type:application/application/json\r\n"
-                + "\r\n";
-        boolean verbose = input.contains("-v");
+        boolean verbose = false;
+        if (input.contains("-v")) {
+            input = input.replace("-v", "").trim();
+            verbose = true;
+        }
+
+        /* parameters is an array with:
+            params[0] = web
+            params[1] = headers
+            params[2] = data
+         */
+        String[] parameters = parseInput(input);
+
         try {
-            send_request(requestType, web, "", headers, verbose);
+            send_request("GET", parameters[0], parameters[1], parameters[2], verbose);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -53,25 +107,27 @@ public class Httpc {
 
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
     private void POST(String input) {
-        // TO-DO Process input for web, body and headers
-        String requestType = "POST ";
-        String web = "http://httpbin.org/post";
-        String body = "{"
-                + "\"key1\":value1,"
-                + "\"key2\":value2"
-                + "}";
-        String headers = "Content-Type:application/application/json\r\n"
-                + "Content-Length: " + body.length() + "\r\n"
-                + "\r\n";
-        boolean verbose = input.contains("-v");
+        boolean verbose = false;
+        if (input.contains("-v")) {
+            input = input.replace("-v", "");
+            verbose = true;
+        }
+
+        /* parameters is an array with:
+            params[0] = web
+            params[1] = headers
+            params[2] = data
+         */
+        String[] parameters = parseInput(input);
+
         try {
-            send_request(requestType, web, body, headers, verbose);
+            send_request("POST", parameters[0], parameters[1], parameters[2], verbose);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void send_request(String requestType, String web, String body, String headers, boolean verbose) throws Exception {
+    private void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
         URL url = new URL(web);
         String host = url.getHost();
         String path = url.getPath();
@@ -81,32 +137,34 @@ public class Httpc {
         } else
             query = "";
 
+        // Referenced: Cristian's Httpc from tutorial [
         // Create socket using standard port 80 for web
         Socket socket = new Socket(host, 80);
-
-        String post_request = requestType + path + query + " HTTP/1.0\r\n"
-                + headers + body;
+        String request = requestType + " " + path + query + " HTTP/1.0\r\n"
+                + headers + data;
 
         InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
 
-        outputStream.write(post_request.getBytes());
+        outputStream.write(request.getBytes());
         outputStream.flush();
 
         StringBuilder response = new StringBuilder();
 
-        int data = inputStream.read();
+        int response_data = inputStream.read();
 
-        while(data != -1) {
-            response.append((char) data);
-            data = inputStream.read();
+        while(response_data != -1) {
+            response.append((char) response_data);
+            response_data = inputStream.read();
         }
+
         if (verbose) {
             System.out.println(response);
         } else {
             System.out.println(response.substring(response.indexOf("\r\n\r\n")));
         }
         socket.close();
+        // ] End of reference
     }
 
     private void HELP(String input) {
