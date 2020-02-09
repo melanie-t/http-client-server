@@ -1,3 +1,9 @@
+// Melanie Taing (40009850)
+// Ziad Hawa (40050712)
+// COMP 445
+// Nagi Basha
+// Assignment 1
+
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
