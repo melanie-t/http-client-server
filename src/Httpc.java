@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,29 +58,15 @@ public class Httpc {
                         }
                     }
                 }
-                File textFile = new File(fileToOpen);
-                Scanner reader = new Scanner(textFile);
-                String fileString = "";
-                boolean foundData = false;
-                while (reader.hasNextLine()) {
-                    String fileData = reader.nextLine();
-                    fileData = fileData.trim();
-                    if(fileData.contains("{") && fileData.contains("}") && ((fileData.indexOf("{") < fileData.indexOf("}")))) //checking for {} and the order they are in (not }{)
-                    {
-                        fileString = fileData;
-                        foundData = true;
-                        data = create_body(fileString);
-                        break;
-                    }
-                }
-                if(!foundData) {
-                    System.out.print("No useable data found in file. Default will be printed.");
-                }
-                reader.close();
+                String wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
+                String objectData = wholeText.substring(wholeText.indexOf("{"),wholeText.lastIndexOf("}")+ 1);
+                data = create_body(objectData);
             } catch (FileNotFoundException e) {
                 if (fileToOpen.equals("")){
                     System.out.println("File name was not specified in command line. Default will be printed.");
                 }else System.out.println("File does not exist. Default will be printed.");
+            } catch (IOException e) {
+                System.out.println("File name was not specified in command line. Default will be printed.");
             }
         }
         StringBuilder headerBuilder = new StringBuilder();
@@ -99,15 +87,12 @@ public class Httpc {
                 // Remove processed header key-value pair
                 input = input.substring(indexHeaderEnd).trim();
             }
-            headerBuilder.append("Content-Length: " + data.length() + "\r\n");
+            if (input.contains("-d") || input.contains("-f"))
+                headerBuilder.append("Content-Length: " + data.length() + "\r\n");
             headerBuilder.append("\r\n");
             headers = headerBuilder.toString();
         }
 
-        // TODO (Ziad) Process data
-        // This is the data format
-
-        System.out.println(data);
         // All arguments (-v, -h, -d, -f) are all processed, so all that's left is the URL
         input = input.replace("'", "").trim();
         web = input.substring(input.indexOf("http://"));
