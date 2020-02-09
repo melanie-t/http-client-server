@@ -98,7 +98,7 @@ public class Httpc {
                 int indexHeaderEnd = input.indexOf(" ");
                 String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
                 if (!headerKeyValue.contains(":")) {
-                    System.out.println("[INVALID INPUT] Header should contain key:value");
+                    System.out.println("[INVALID ARGUMENT] Header should contain key:value");
                     break;
                 } else {
                     headerBuilder.append(headerKeyValue + "\r\n");
@@ -163,11 +163,10 @@ public class Httpc {
                     body.append(bodyEntries[bodyEntry]).append(",");
                 else body.append(bodyEntries[bodyEntry]).append("}");
             }
-            return body.toString();
         } else {
-            System.out.println("[INVALID INPUT] Data not specified or in the wrong format");
-            return "";
+            System.out.println("[INVALID ARGUMENT] Data not specified or in the wrong format");
         }
+        return body.toString();
     }
 
     // get [-v] [-h key:value] URL
