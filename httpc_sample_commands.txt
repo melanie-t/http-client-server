@@ -13,4 +13,5 @@ get -h Content-Type:application/json -d '{"Assignment": 1}' 'http://httpbin.org/
 
 post -v -h Content-Type:application/json -h User-Agent:Ziad 'http://httpbin.org/post?course=networking&assignment=1'
 post -h Content-Type:application/json -d '{"Assignment": 1}' 'http://httpbin.org/post'
-post -v -h Content-Type:application/json -f input/input_file.txt 'http://httpbin.org/post'
+post -h Content-Type:application/json -h User-Agent:Basha -f input/input_file.txt 'http://httpbin.org/post?hungry=yes'
+post -v -h Content-Type:application/json -h User-Agent:Basha -f input/input_file.txt 'http://httpbin.org/post?hungry=yes'

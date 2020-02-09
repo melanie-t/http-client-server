@@ -97,10 +97,14 @@ public class Httpc {
                 // indexHeaderEnd marks the end of the header key/value which is denoted by a space
                 int indexHeaderEnd = input.indexOf(" ");
                 String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
-                headerBuilder.append(headerKeyValue + "\r\n");
-
-                // Remove processed header key-value pair
-                input = input.substring(indexHeaderEnd).trim();
+                if (!headerKeyValue.contains(":")) {
+                    System.out.println("[INVALID INPUT] Header should contain key:value");
+                    break;
+                } else {
+                    headerBuilder.append(headerKeyValue + "\r\n");
+                    // Remove processed header key-value pair
+                    input = input.substring(indexHeaderEnd).trim();
+                }
             }
             if (data.length() != 0) {
                 headerBuilder.append("Content-Length: " + data.length() + "\r\n");
