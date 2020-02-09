@@ -1,9 +1,11 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Httpc {
 
@@ -25,12 +27,26 @@ public class Httpc {
                 running = false;
             } else if (requestType.equalsIgnoreCase("help")) {
                 HELP(input);
+            } else if (!input.contains("http://")) {
+                System.out.println("[INVALID INPUT] URL not specified");
+                HELP("");
             } else if (requestType.equalsIgnoreCase("get")) {
-                GET(input);
+                if (input.contains("-d") || input.contains("-f")) {
+                    System.out.println("[INVALID INPUT] GET request cannot contain -d or -f arguments");
+                    HELP("get");
+                } else {
+                    GET(input);
+                }
             } else if (requestType.equalsIgnoreCase("post")) {
-                POST(input);
+                if (input.contains("-d") && input.contains("-f")) {
+                    System.out.println("[INVALID INPUT] POST request can contain either -d or -f, but not both");
+                    HELP("post");
+                } else {
+                    POST(input);
+                }
             } else {
-                System.out.println("Invalid command. Input help for help");
+                System.out.println("Invalid command");
+                HELP("");
             }
         }
         System.out.println("Httpc terminated successfully");
@@ -41,8 +57,34 @@ public class Httpc {
         String web = "";
         String headers = "";
         String data = "";
-
         StringBuilder headerBuilder = new StringBuilder();
+
+        if (input.contains("-d")){
+            data = create_body(input);
+        } else if (input.contains("-f")){
+            String fileToOpen = "";
+            try {
+                String[] inputWords = input.split(" ");
+                for (int i = 0; i < inputWords.length; i++){
+                    if(inputWords[i].trim().equals("-f")){
+                        if(i+1 != inputWords.length) //handles case where -f is not succeeded by any string
+                        {
+                            fileToOpen = inputWords[i+1];
+                            System.out.println("Opening " + fileToOpen);
+                        }
+                    }
+                }
+                String wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
+                String objectData = wholeText.substring(wholeText.indexOf("{"),wholeText.lastIndexOf("}")+ 1);
+                data = create_body(objectData);
+            } catch (FileNotFoundException e) {
+                if (fileToOpen.equals("")){
+                    System.out.println("File name was not specified in command line. Default will be printed.");
+                } else System.out.println("File does not exist. Default will be printed.");
+            } catch (IOException e) {
+                System.out.println("File name was not specified in command line. Default will be printed.");
+            }
+        }
 
         if (input.contains("-h")) {
             while(input.contains("-h")) {
@@ -55,33 +97,76 @@ public class Httpc {
                 // indexHeaderEnd marks the end of the header key/value which is denoted by a space
                 int indexHeaderEnd = input.indexOf(" ");
                 String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
-                headerBuilder.append(headerKeyValue + "\r\n");
-
-                // Remove processed header key-value pair
-                input = input.substring(indexHeaderEnd).trim();
+                if (!headerKeyValue.contains(":")) {
+                    System.out.println("[INVALID ARGUMENT] Header should contain key:value");
+                    break;
+                } else {
+                    headerBuilder.append(headerKeyValue + "\r\n");
+                    // Remove processed header key-value pair
+                    input = input.substring(indexHeaderEnd).trim();
+                }
+            }
+            if (data.length() != 0) {
+                headerBuilder.append("Content-Length: " + data.length() + "\r\n");
             }
             headerBuilder.append("\r\n");
             headers = headerBuilder.toString();
         }
-
-        // TODO (Ziad) Process data
-        // This is the data format
-        if (input.contains("-d") || input.contains("f"))  {
-            // input = -d {"key1": 1, "key2": value2}'
-            data = "{"
-                    + "\"key1\":value1,"
-                    + "\"key2\":value2"
-                    + "}";
-        }
-
         // All arguments (-v, -h, -d, -f) are all processed, so all that's left is the URL
-        web = input.replace("'", "").trim();
+        input = input.replace("'", "").trim();
+        web = input.substring(input.indexOf("http://"));
 
         parameters[0] = web;
         parameters[1] = headers;
         parameters[2] = data;
 
         return parameters;
+    }
+
+    private String create_body(String input){
+        StringBuilder body = new StringBuilder();
+        String[] keys = new String[5];
+        String[] values = new String[5];
+        //regex with pattern and matcher created to find all key values between double quotes
+        int first_brace = input.indexOf("{");
+        int second_brace = input.indexOf("}");
+
+        if (first_brace != -1 && second_brace != -1) {
+            String dataToParse = input.substring(first_brace + 1, second_brace);
+            Pattern key = Pattern.compile("\"([^\"]*)\"");
+            Matcher match = key.matcher(dataToParse);
+            int keyCount = 0;
+            while(match.find()) {
+                keys[keyCount] = match.group(1);
+                keyCount++;
+            }
+            //regex matches the value between : and , except for the final value which is between , and the end of the string $ and puts them in the values array;
+            Pattern val = Pattern.compile(":[^,]*(,|$)");
+            match = val.matcher(dataToParse);
+            int valCount = 0;
+            while(match.find()){
+                if (valCount != keyCount - 1)
+                    values[valCount] = (match.group(0).substring(1, match.group(0).length() - 1)).trim();
+                else values[valCount] = (match.group(0).substring(1)).trim();
+                valCount++;
+            }
+            String[] bodyEntries = new String[keyCount];
+
+            for(int i = 0; i < bodyEntries.length; i++){
+                bodyEntries[i] = "\"" + keys[i] + "\": " + values[i];
+            }
+
+            //body is a combination of all key:value combinations
+            body = new StringBuilder("{");
+            for(int bodyEntry = 0; bodyEntry< bodyEntries.length; bodyEntry++){
+                if (bodyEntry != bodyEntries.length -1)
+                    body.append(bodyEntries[bodyEntry]).append(",");
+                else body.append(bodyEntries[bodyEntry]).append("}");
+            }
+        } else {
+            System.out.println("[INVALID ARGUMENT] Data not specified or in the wrong format");
+        }
+        return body.toString();
     }
 
     // get [-v] [-h key:value] URL
@@ -130,6 +215,7 @@ public class Httpc {
 
     private void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
         URL url = new URL(web);
+
         String host = url.getHost();
         String path = url.getPath();
         String query = url.getQuery();
@@ -142,7 +228,7 @@ public class Httpc {
         // Create socket using standard port 80 for web
         Socket socket = new Socket(host, 80);
         String request = requestType + " " + path + query + " HTTP/1.0\r\n"
-                + headers + data;
+                + headers + data + "\r\n";
 
         InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
@@ -159,11 +245,16 @@ public class Httpc {
             response_data = inputStream.read();
         }
 
-        if (verbose) {
-            System.out.println(response);
+        if (response.length() > 0) {
+            if (verbose) {
+                System.out.println(response);
+            } else {
+                System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+            }
         } else {
-            System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+            System.out.println("The response is empty");
         }
+
         socket.close();
         // ] End of reference
     }
