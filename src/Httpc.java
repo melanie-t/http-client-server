@@ -95,10 +95,11 @@ public class Httpc {
                 int indexHeaderEnd = input.indexOf(" ");
                 String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
                 headerBuilder.append(headerKeyValue + "\r\n");
-                headerBuilder.append("Content-Length: " + data.length() + "\r\n");
+
                 // Remove processed header key-value pair
                 input = input.substring(indexHeaderEnd).trim();
             }
+            headerBuilder.append("Content-Length: " + data.length() + "\r\n");
             headerBuilder.append("\r\n");
             headers = headerBuilder.toString();
         }
