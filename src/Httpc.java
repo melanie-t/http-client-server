@@ -55,6 +55,8 @@ public class Httpc {
         String web = "";
         String headers = "";
         String data = "";
+        StringBuilder headerBuilder = new StringBuilder();
+
         if (input.contains("-d")){
             data = create_body(input);
         } else if (input.contains("-f")){
@@ -85,17 +87,17 @@ public class Httpc {
                         break;
                     }
                 }
-                if(!foundData) {
+                if (!foundData) {
                     System.out.print("No useable data found in file. Default will be printed.");
                 }
                 reader.close();
             } catch (FileNotFoundException e) {
                 if (fileToOpen.equals("")){
                     System.out.println("File name was not specified in command line. Default will be printed.");
-                }else System.out.println("File does not exist. Default will be printed.");
+                } else
+                    System.out.println("File does not exist. Default will be printed.");
             }
         }
-        StringBuilder headerBuilder = new StringBuilder();
 
         if (input.contains("-h")) {
             while(input.contains("-h")) {
@@ -113,15 +115,12 @@ public class Httpc {
                 // Remove processed header key-value pair
                 input = input.substring(indexHeaderEnd).trim();
             }
-            headerBuilder.append("Content-Length: " + data.length() + "\r\n");
+            if (data.length() != 0) {
+                headerBuilder.append("Content-Length: " + data.length() + "\r\n");
+            }
             headerBuilder.append("\r\n");
             headers = headerBuilder.toString();
         }
-
-        // TODO (Ziad) Process data
-        // This is the data format
-
-        System.out.println(data);
         // All arguments (-v, -h, -d, -f) are all processed, so all that's left is the URL
         input = input.replace("'", "").trim();
         web = input.substring(input.indexOf("http://"));
@@ -231,7 +230,7 @@ public class Httpc {
         // Create socket using standard port 80 for web
         Socket socket = new Socket(host, 80);
         String request = requestType + " " + path + query + " HTTP/1.0\r\n"
-                + headers + data;
+                + headers + data + "\r\n";
 
         InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
