@@ -3,13 +3,14 @@ help get
 help post
 
 get 'http://httpbin.org/status/418'
-get -v 'http://httpbin.org/status/418'
-get 'http://httpbin.org/get?course=networking&assignment=1'
-get -v 'http://httpbin.org/get?course=networking&assignment=1'
-get -v -h Content-Type:application/json 'http://httpbin.org/get?course=networking&assignment=1'
-get -v -h Content-Type:application/json -h User-Agent:Melanie http://httpbin.org/get?course=networking&assignment=1'
+get -v 'http://httpbin.org/status/418' 
+get 'http://httpbin.org/get?course=networking&assignment=1' 
+get -v 'http://httpbin.org/get?course=networking&assignment=1' 
+get -v -h Content-Type:application/json 'http://httpbin.org/get?course=networking&assignment=1' 
+get -v -h Content-Type:application/json -h User-Agent:Melanie 'http://httpbin.org/get?course=networking&assignment=1' 
+get -h Content-Type:application/json -d '{"Assignment": 1}' 'http://httpbin.org/get'
 
 
 post -v -h Content-Type:application/json -h User-Agent:Ziad 'http://httpbin.org/post?course=networking&assignment=1'
-post -h Content-Type:application/json -d '{"Assignment": 1}' http://httpbin.org/post
+post -h Content-Type:application/json -d '{"Assignment": 1}' 'http://httpbin.org/post'
 post -v -h Content-Type:application/json -f input/input_file.txt 'http://httpbin.org/post'
