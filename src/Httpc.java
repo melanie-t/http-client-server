@@ -25,12 +25,26 @@ public class Httpc {
                 running = false;
             } else if (requestType.equalsIgnoreCase("help")) {
                 HELP(input);
+            } else if (!input.contains("http://")) {
+                System.out.println("[INVALID INPUT] URL not specified");
+                HELP("");
             } else if (requestType.equalsIgnoreCase("get")) {
-                GET(input);
+                if (input.contains("-d") || input.contains("-f")) {
+                    System.out.println("[INVALID INPUT] GET request cannot contain -d or -f arguments");
+                    HELP("get");
+                } else {
+                    GET(input);
+                }
             } else if (requestType.equalsIgnoreCase("post")) {
-                POST(input);
+                if (input.contains("-d") && input.contains("-f")) {
+                    System.out.println("[INVALID INPUT] POST request can contain either -d or -f, but not both");
+                    HELP("post");
+                } else {
+                    POST(input);
+                }
             } else {
-                System.out.println("Invalid command. Input help for help");
+                System.out.println("Invalid command");
+                HELP("");
             }
         }
         System.out.println("Httpc terminated successfully");
@@ -234,11 +248,16 @@ public class Httpc {
             response_data = inputStream.read();
         }
 
-        if (verbose) {
-            System.out.println(response);
+        if (response.length() > 0) {
+            if (verbose) {
+                System.out.println(response);
+            } else {
+                System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+            }
         } else {
-            System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+            System.out.println("The response is empty");
         }
+
         socket.close();
         // ] End of reference
     }
