@@ -80,7 +80,7 @@ public class Httpc {
             } catch (FileNotFoundException e) {
                 if (fileToOpen.equals("")){
                     System.out.println("File name was not specified in command line. Default will be printed.");
-                }else System.out.println("File does not exist. Default will be printed.");
+                } else System.out.println("File does not exist. Default will be printed.");
             } catch (IOException e) {
                 System.out.println("File name was not specified in command line. Default will be printed.");
             }
@@ -128,38 +128,46 @@ public class Httpc {
         String[] keys = new String[5];
         String[] values = new String[5];
         //regex with pattern and matcher created to find all key values between double quotes
-        String dataToParse = input.substring(input.indexOf("{") + 1, input.indexOf("}"));
-        Pattern key = Pattern.compile("\"([^\"]*)\"");
-        Matcher match = key.matcher(dataToParse);
-        int keyCount = 0;
-        while(match.find()) {
-            keys[keyCount] = match.group(1);
-            keyCount++;
-        }
-        //regex matches the value between : and , except for the final value which is between , and the end of the string $ and puts them in the values array;
-        Pattern val = Pattern.compile(":[^,]*(,|$)");
-        match = val.matcher(dataToParse);
-        int valCount = 0;
-        while(match.find()){
-            if (valCount != keyCount - 1)
-                values[valCount] = (match.group(0).substring(1, match.group(0).length() - 1)).trim();
-            else values[valCount] = (match.group(0).substring(1)).trim();
-            valCount++;
-        }
-        String[] bodyEntries = new String[keyCount];
+        int first_brace = input.indexOf("{");
+        int second_brace = input.indexOf("}");
 
-        for(int i = 0; i < bodyEntries.length; i++){
-            bodyEntries[i] = "\"" + keys[i] + "\": " + values[i];
-        }
+        if (first_brace != -1 && second_brace != -1) {
+            String dataToParse = input.substring(first_brace + 1, second_brace);
+            Pattern key = Pattern.compile("\"([^\"]*)\"");
+            Matcher match = key.matcher(dataToParse);
+            int keyCount = 0;
+            while(match.find()) {
+                keys[keyCount] = match.group(1);
+                keyCount++;
+            }
+            //regex matches the value between : and , except for the final value which is between , and the end of the string $ and puts them in the values array;
+            Pattern val = Pattern.compile(":[^,]*(,|$)");
+            match = val.matcher(dataToParse);
+            int valCount = 0;
+            while(match.find()){
+                if (valCount != keyCount - 1)
+                    values[valCount] = (match.group(0).substring(1, match.group(0).length() - 1)).trim();
+                else values[valCount] = (match.group(0).substring(1)).trim();
+                valCount++;
+            }
+            String[] bodyEntries = new String[keyCount];
 
-        //body is a combination of all key:value combinations
-        body = new StringBuilder("{");
-        for(int bodyEntry = 0; bodyEntry< bodyEntries.length; bodyEntry++){
-            if (bodyEntry != bodyEntries.length -1)
-                body.append(bodyEntries[bodyEntry]).append(",");
-            else body.append(bodyEntries[bodyEntry]).append("}");
+            for(int i = 0; i < bodyEntries.length; i++){
+                bodyEntries[i] = "\"" + keys[i] + "\": " + values[i];
+            }
+
+            //body is a combination of all key:value combinations
+            body = new StringBuilder("{");
+            for(int bodyEntry = 0; bodyEntry< bodyEntries.length; bodyEntry++){
+                if (bodyEntry != bodyEntries.length -1)
+                    body.append(bodyEntries[bodyEntry]).append(",");
+                else body.append(bodyEntries[bodyEntry]).append("}");
+            }
+            return body.toString();
+        } else {
+            System.out.println("[INVALID INPUT] Data not specified or in the wrong format");
+            return "";
         }
-        return body.toString();
     }
 
     // get [-v] [-h key:value] URL
