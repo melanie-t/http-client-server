@@ -41,31 +41,6 @@ public class Httpc {
         String web = "";
         String headers = "";
         String data = "";
-
-        StringBuilder headerBuilder = new StringBuilder();
-
-        if (input.contains("-h")) {
-            while(input.contains("-h")) {
-                // indexHeaderFlag is the index of -h in the input string, and +2 because we want to splice -h
-                int indexHeaderFlag = input.indexOf("-h")+2;
-
-                // Remove -h argument from input string
-                input = input.substring(indexHeaderFlag).trim();
-
-                // indexHeaderEnd marks the end of the header key/value which is denoted by a space
-                int indexHeaderEnd = input.indexOf(" ");
-                String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
-                headerBuilder.append(headerKeyValue + "\r\n");
-
-                // Remove processed header key-value pair
-                input = input.substring(indexHeaderEnd).trim();
-            }
-            headerBuilder.append("\r\n");
-            headers = headerBuilder.toString();
-        }
-
-        // TODO (Ziad) Process data
-        // This is the data format
         if (input.contains("-d")){
             data = create_body(input);
         } else if (input.contains("-f")){
@@ -106,6 +81,31 @@ public class Httpc {
                 }else System.out.println("File does not exist. Default will be printed.");
             }
         }
+        StringBuilder headerBuilder = new StringBuilder();
+
+        if (input.contains("-h")) {
+            while(input.contains("-h")) {
+                // indexHeaderFlag is the index of -h in the input string, and +2 because we want to splice -h
+                int indexHeaderFlag = input.indexOf("-h")+2;
+
+                // Remove -h argument from input string
+                input = input.substring(indexHeaderFlag).trim();
+
+                // indexHeaderEnd marks the end of the header key/value which is denoted by a space
+                int indexHeaderEnd = input.indexOf(" ");
+                String headerKeyValue = input.substring(0, indexHeaderEnd).trim();
+                headerBuilder.append(headerKeyValue + "\r\n");
+                headerBuilder.append("Content-Length: " + data.length() + "\r\n");
+                // Remove processed header key-value pair
+                input = input.substring(indexHeaderEnd).trim();
+            }
+            headerBuilder.append("\r\n");
+            headers = headerBuilder.toString();
+        }
+
+        // TODO (Ziad) Process data
+        // This is the data format
+
         System.out.println(data);
         // All arguments (-v, -h, -d, -f) are all processed, so all that's left is the URL
         input = input.replace("'", "").trim();
