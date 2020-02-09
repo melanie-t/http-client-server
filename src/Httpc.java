@@ -203,6 +203,7 @@ public class Httpc {
 
     private void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
         URL url = new URL(web);
+
         String host = url.getHost();
         String path = url.getPath();
         String query = url.getQuery();
