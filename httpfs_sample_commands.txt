@@ -1,0 +1,11 @@
+-p 8070 -d data\\
+
+curl http://localhost:8080
+curl http://localhost:8080/file1.txt
+
+get 'http://localhost:8080'
+get 'http://localhost:8080/file1.txt'
+
+curl -H "Content-Type: text/plain" --data "replacing file 1 contents" http://localhost:8080/file1.txt
+
+curl -d "replacing file 1 contents" http://localhost:8080/file1.txt
