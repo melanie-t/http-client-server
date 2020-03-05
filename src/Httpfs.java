@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -6,7 +7,7 @@ import java.util.Scanner;
 
 public class Httpfs {
 
-    final int DEFAULT_PORT = 8080;
+    final int DEFAULT_PORT = 8081;
     final String DEFAULT_DIRECTORY = "/data/";
 
     public Httpfs() {
@@ -26,25 +27,29 @@ public class Httpfs {
             System.out.print("httpfs > ");
             String input = kb.nextLine().toLowerCase().trim();
 
-//            if (input.contains("/q"))
-//                break;
-//
-//            // Parse verbose, port and directory
-//            if (input.contains("-p")) {
-//                // port_number = Integer.valueOf(input);
-//            }
-//
-//            if (input.contains("-d")) {
-//
-//            }
-//
-//            if (input.contains("-v")) {
-//                verbose = true;
-//            }
-//
-//            if (input.contains("help")) {
-//                HELP();
-//            }
+            if (input.contains("/q"))
+                break;
+
+            // Parse verbose, port and directory
+            if (input.contains("-p")) {
+                // port_number = Integer.valueOf(input);
+            }
+
+            if (input.contains("-d")) {
+
+            }
+
+            if (input.contains("-v")) {
+                verbose = true;
+            }
+
+            if (input.contains("help")) {
+                HELP();
+            }
+
+            if(input.contains("get")) {
+                GET(input);
+            }
 
             // Start server
             server_socket(port_number);
@@ -73,6 +78,57 @@ public class Httpfs {
         // End source
     }
 
+    private void GET(String input){
+        boolean verbose = false;
+        if (input.contains("-v")) {
+            input = input.replace("-v", "").trim();
+            verbose = true;
+        }
+        String[] inputDivided = input.split(" ");
+
+        if (input.contains("/")){
+            if((input.charAt(input.length() - 1) == '/') || (input.charAt(input.indexOf("/") + 1) == ' ')) {
+                listFiles("data");
+            } else {
+                String fileName = inputDivided[1];
+                boolean readable = false;
+                String fileToOpen = "data" + fileName;
+                while (!readable) {
+                    if (fileToOpen.contains(".")) {
+                        readable = true;
+                    } else {
+                        listFiles(fileToOpen);
+                        System.out.print("File specified was a directory, choose a file name within this directory to read: ");
+                        Scanner kb = new Scanner(System.in);
+                        String userInput = kb.nextLine().trim();
+                        fileToOpen += "/" + userInput;
+                    }
+                }
+                System.out.println("Opening " + fileToOpen);
+            }
+
+        }
+    }
+    private void listFiles(String parent){
+        File dataDir = new File(parent);
+        File[] filesInDirectory = dataDir.listFiles();
+        System.out.println("File/Directory Name         Type");
+        if(filesInDirectory.length != 0){
+            for (int i = 0; i < filesInDirectory.length; i++){
+                String fileNameComplete = filesInDirectory[i].getName();
+                String fileName;
+                String fileType;
+                if(fileNameComplete.contains(".")) {
+                    fileName = fileNameComplete.substring(0, fileNameComplete.lastIndexOf('.'));
+                    fileType = fileNameComplete.substring(fileNameComplete.lastIndexOf('.'));
+                } else {
+                    fileName = fileNameComplete.trim();
+                    fileType = "\tFolder";
+                }
+                System.out.println(fileName + "\t\t\t\t\t\t" + fileType); //FilenameUtils.getExtension(filesInDirectory[i])
+            }
+        }
+    }
     private void HELP() {
         System.out.println("httpfs is a simple file server." +
                 "\n" + "Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]" +
