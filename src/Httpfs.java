@@ -106,9 +106,8 @@ public class Httpfs {
 
                     // Send the response back
                     out.print(response.toString());
-
-                    in.close();
                     out.close();
+                    in.close();
                     socket.close();
                 }
             }
