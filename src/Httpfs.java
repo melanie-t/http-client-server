@@ -16,7 +16,7 @@ public class Httpfs {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
         String directory = DEFAULT_DIRECTORY;
-        boolean verbose = true;
+        boolean verbose = false;
 
         System.out.println("Welcome to httpfs. Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]");
         Scanner kb = new Scanner(System.in);
@@ -61,7 +61,7 @@ public class Httpfs {
             // Server initialized and waits for client requests
             while (true) {
                 try (Socket socket = server.accept()) {
-                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                     StringBuilder httpRequest = new StringBuilder();
@@ -101,7 +101,9 @@ public class Httpfs {
 
                     }
 
-                    // TODO LATER: Write response to output stream instead of printing in console
+                    // Send the response back
+                    out.print(response.toString());
+
                     in.close();
                     out.close();
                     socket.close();
@@ -165,9 +167,11 @@ public class Httpfs {
         }
     }
 
-    private void POST(String input) {
+    private String POST(String input, boolean verbose) {
+        StringBuilder postResponse = new StringBuilder();
         // Process headers
 
+        return postResponse.toString();
     }
 
     private void HELP() {
