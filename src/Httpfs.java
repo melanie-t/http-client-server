@@ -1,13 +1,11 @@
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Httpfs {
 
-    final int DEFAULT_PORT = 8081;
+    final int DEFAULT_PORT = 8080;
     final String DEFAULT_DIRECTORY = "/data/";
 
     public Httpfs() {
@@ -18,7 +16,7 @@ public class Httpfs {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
         String directory = DEFAULT_DIRECTORY;
-        boolean verbose = false;
+        boolean verbose = true;
 
         System.out.println("Welcome to httpfs. Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]");
         Scanner kb = new Scanner(System.in);
@@ -47,29 +45,57 @@ public class Httpfs {
                 HELP();
             }
 
-            if(input.contains("get")) {
-                GET(input);
-            }
 
             // Start server
-            server_socket(port_number);
+            server_socket(port_number, verbose);
         }
     }
 
-    private void server_socket(int server_port) {
+    private void server_socket(int server_port, boolean verbose) {
 
-        // Source: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
+        // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
+        // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
+
         try (ServerSocket server = new ServerSocket(server_port)) {
-            System.out.println("Server has been instantiated at port " + server_port);
+            System.out.println("Server has been instantiated at port " + server_port + "\n");
             // Server initialized and waits for client requests
-            while(true) {
-                // Is this a blocking or non-blocking call?
-                // What would you need to do to service multiple clients at the same time?
-                try (Socket client_connection = server.accept()) {
-                    PrintWriter outbount_client = new PrintWriter(client_connection.getOutputStream(), true);
-                    outbount_client.println("Well hello to you too.");
-                    client_connection.close();
-                    System.out.println("Httpfs terminated successfully");
+            while (true) {
+                try (Socket socket = server.accept()) {
+                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                    StringBuilder httpRequest = new StringBuilder();
+                    StringBuilder response = new StringBuilder();
+
+                    // Get the first line containing the HTTP response
+                    String requestLine = in.readLine();
+                    httpRequest.append(requestLine + "\n");
+
+                    // Source: https://codereview.stackexchange.com/questions/44135/is-it-ok-to-use-while-line-r-readline-null-construct
+                    // Process all other lines
+                    for (String line = in.readLine(); line != null; line = in.readLine()) {
+                        if (line.equals(""))
+                            break;
+                        httpRequest.append(line + "\n");
+                    }
+
+                    if (verbose) {
+                        response.append(httpRequest);
+                    }
+
+                    System.out.println(httpRequest);
+
+                    // Process HTTP Request
+                    String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+                    System.out.println("Request Type " + requestType);
+
+                    if (requestType.toString().contains("GET")) {
+                        GET(requestType);
+                    }
+
+                    in.close();
+                    out.close();
+                    socket.close();
                 }
             }
         } catch (IOException e) {
