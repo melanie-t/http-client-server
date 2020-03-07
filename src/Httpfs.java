@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class Httpfs {
 
     final int DEFAULT_PORT = 8080;
-    final String DEFAULT_DIRECTORY = "/data/";
+    final String DEFAULT_DIRECTORY = "data/";
 
     public Httpfs() {
         init();
@@ -70,10 +70,12 @@ public class Httpfs {
                     StringBuilder requestHeaders = new StringBuilder();
                     StringBuilder payload = new StringBuilder();
                     StringBuilder response = new StringBuilder();
-
+                    String userAgent = null;
                     // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
                     String headerLine = null;
                     while((headerLine = in.readLine()).length() != 0){
+                        if (headerLine.contains("User-Agent"))
+                            userAgent = headerLine;
                         requestHeaders.append(headerLine + "\n");
                     }
 
@@ -82,8 +84,8 @@ public class Httpfs {
                         payload.append((char) in.read());
                     }
 
-                    System.out.println(requestHeaders);
-                    System.out.println(payload);
+                    System.out.print(requestHeaders);
+                    System.out.println(payload + "\n");
 
                     // Get the first line containing the HTTP response
                     String requestLine = requestHeaders.toString();
@@ -97,6 +99,8 @@ public class Httpfs {
                     // Process HTTP Request
                     if (requestLine.contains("HTTP")) {
                         String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+                        String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
+
                         if (requestType.toString().contains("GET")) {
                             // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
                             //  String data = GET(requestType);
@@ -106,7 +110,8 @@ public class Httpfs {
 
                         // TODO Melanie
                         else if (requestType.toString().contains("POST")) {
-                            String post = POST(directory, requestType, payload.toString(), verbose);
+                            String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
+                            response.append(post);
                         }
                     }
                     else {
@@ -178,17 +183,32 @@ public class Httpfs {
         }
     }
 
-    private String POST(String fileDirectory, String requestLine, String body, boolean verbose) {
+    private String POST(String directory, String httpVersion, String userAgent, String requestLine, String body, boolean verbose) {
         StringBuilder postResponse = new StringBuilder();
-        // Process headers
+
+        String filePath = requestLine.substring(requestLine.indexOf("POST ")+5, requestLine.length()-1);
+        String fileDirectory = directory + filePath;
+
         if (verbose) {
-            System.out.println("[Verbose] Processing POST request");
-            System.out.println("[Verbose] " + requestLine + body);
+            System.out.println("Processing POST request");
+            System.out.println(requestLine + body);
+            System.out.println("Attempting to write file " + fileDirectory);
         }
 
-        File dataDir = new File(fileDirectory);
-        File[] filesInDirectory = dataDir.listFiles();
-
+        try (Writer fileWriter = new FileWriter(fileDirectory, false);){
+            fileWriter.write(body);
+            fileWriter.close();
+            if (verbose) {
+                System.out.println("Successfully written to the file.");
+            }
+        } catch (IOException e) {
+            String response = httpVersion + " 403 Forbidden " + "\n" + userAgent;
+            postResponse.append(response);
+            if (verbose) {
+                System.out.println("File cannot be overwritten");
+            }
+        }
+        postResponse.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent + "\n");
         return postResponse.toString();
     }
 
