@@ -164,6 +164,12 @@ public class Httpfs {
             }
         }
     }
+
+    private void POST(String input) {
+        // Process headers
+
+    }
+
     private void HELP() {
         System.out.println("httpfs is a simple file server." +
                 "\n" + "Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]" +
