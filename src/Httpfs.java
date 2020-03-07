@@ -15,12 +15,13 @@ public class Httpfs {
     private void init() {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
-        String directory = DEFAULT_DIRECTORY;
+        String directory = null;
         boolean verbose = true;
 
         System.out.println("Welcome to httpfs. Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]");
         Scanner kb = new Scanner(System.in);
 
+        System.out.println("\nInput httpfs options or press enter to start the server.");
         while (true) {
             System.out.print("httpfs > ");
             String input = kb.nextLine().toLowerCase().trim();
@@ -47,47 +48,55 @@ public class Httpfs {
 
 
             // Start server
-            server_socket(port_number, verbose);
+            if (directory == null)
+                directory = DEFAULT_DIRECTORY;
+            server_socket(directory, port_number, verbose);
         }
     }
 
-    private void server_socket(int server_port, boolean verbose) {
+    private void server_socket(String directory, int server_port, boolean verbose) {
 
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
         try (ServerSocket server = new ServerSocket(server_port)) {
-            System.out.println("Server has been instantiated at port " + server_port + "\n");
+            System.out.println("Server has been instantiated at port " + server_port);
             // Server initialized and waits for client requests
             while (true) {
+                System.out.println("\nWaiting for client requests...");
                 try (Socket socket = server.accept()) {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                    String requestType;
-                    StringBuilder httpRequest = new StringBuilder();
+                    StringBuilder requestHeaders = new StringBuilder();
+                    StringBuilder payload = new StringBuilder();
                     StringBuilder response = new StringBuilder();
 
-                    // Get the first line containing the HTTP response
-                    String requestLine = in.readLine();
-                    httpRequest.append(requestLine + "\n");
-
-                    // Source: https://codereview.stackexchange.com/questions/44135/is-it-ok-to-use-while-line-r-readline-null-construct
-                    // Process all other lines
-                    for (String line = in.readLine(); line != null; line = in.readLine()) {
-                        if (line.equals(""))
-                            break;
-                        httpRequest.append(line + "\n");
+                    // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
+                    String headerLine = null;
+                    while((headerLine = in.readLine()).length() != 0){
+                        requestHeaders.append(headerLine + "\n");
                     }
+
+                    //code to read the post payload data
+                    while(in.ready()){
+                        payload.append((char) in.read());
+                    }
+
+                    System.out.println(requestHeaders);
+                    System.out.println(payload);
+
+                    // Get the first line containing the HTTP response
+                    String requestLine = requestHeaders.toString();
 
                     if (verbose) {
-                        response.append(httpRequest);
+                        response.append(requestHeaders);
+                        if (payload.length() > 0)
+                            response.append(payload + "\n");
                     }
-
-                    System.out.println(httpRequest);
 
                     // Process HTTP Request
                     if (requestLine.contains("HTTP")) {
-                        requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+                        String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
                         if (requestType.toString().contains("GET")) {
                             // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
                             //  String data = GET(requestType);
@@ -97,7 +106,7 @@ public class Httpfs {
 
                         // TODO Melanie
                         else if (requestType.toString().contains("POST")) {
-
+                            String post = POST(directory, requestType, payload.toString(), verbose);
                         }
                     }
                     else {
@@ -169,9 +178,16 @@ public class Httpfs {
         }
     }
 
-    private String POST(String input, boolean verbose) {
+    private String POST(String fileDirectory, String requestLine, String body, boolean verbose) {
         StringBuilder postResponse = new StringBuilder();
         // Process headers
+        if (verbose) {
+            System.out.println("[Verbose] Processing POST request");
+            System.out.println("[Verbose] " + requestLine + body);
+        }
+
+        File dataDir = new File(fileDirectory);
+        File[] filesInDirectory = dataDir.listFiles();
 
         return postResponse.toString();
     }
