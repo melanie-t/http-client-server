@@ -16,7 +16,7 @@ public class Httpfs {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
         String directory = DEFAULT_DIRECTORY;
-        boolean verbose = false;
+        boolean verbose = true;
 
         System.out.println("Welcome to httpfs. Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]");
         Scanner kb = new Scanner(System.in);
@@ -55,7 +55,6 @@ public class Httpfs {
 
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
-
         try (ServerSocket server = new ServerSocket(server_port)) {
             System.out.println("Server has been instantiated at port " + server_port + "\n");
             // Server initialized and waits for client requests
@@ -64,6 +63,7 @@ public class Httpfs {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+                    String requestType;
                     StringBuilder httpRequest = new StringBuilder();
                     StringBuilder response = new StringBuilder();
 
@@ -86,19 +86,22 @@ public class Httpfs {
                     System.out.println(httpRequest);
 
                     // Process HTTP Request
-                    String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
-                    System.out.println("Request Type " + requestType);
+                    if (requestLine.contains("HTTP")) {
+                        requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+                        if (requestType.toString().contains("GET")) {
+                            // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
+                            //  String data = GET(requestType);
+                            //  response.append(data)
+                            GET(requestType);
+                            }
 
-                    if (requestType.toString().contains("GET")) {
-                        // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
-                        //  String data = GET(requestType);
-                        //  response.append(data)
-                        GET(requestType);
+                        // TODO Melanie
+                        else if (requestType.toString().contains("POST")) {
+
                         }
-
-                    // TODO Melanie
-                    if (requestType.toString().contains("POST")) {
-
+                    }
+                    else {
+                        response.append("Invalid request. Httpfs only supports POST and GET HTTP requests");
                     }
 
                     // Send the response back
