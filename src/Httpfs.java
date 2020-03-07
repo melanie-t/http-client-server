@@ -90,9 +90,18 @@ public class Httpfs {
                     System.out.println("Request Type " + requestType);
 
                     if (requestType.toString().contains("GET")) {
+                        // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
+                        //  String data = GET(requestType);
+                        //  response.append(data)
                         GET(requestType);
+                        }
+
+                    // TODO Melanie
+                    if (requestType.toString().contains("POST")) {
+
                     }
 
+                    // TODO LATER: Write response to output stream instead of printing in console
                     in.close();
                     out.close();
                     socket.close();
