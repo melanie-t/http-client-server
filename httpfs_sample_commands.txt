@@ -9,6 +9,6 @@ get 'http://localhost:8080/data_1.txt'
 get 'http://localhost:8080/data_2.txt'
 get 'http://localhost:8080/data_3.json'
 
-curl -H "Content-Type: text/plain" --data "replacing file 1 contents" http://localhost:8080/data_1.txt
+curl post /bar -H "Content-Type: text/plain" --data "replacing file 1 contents" http://localhost:8080/data_1.txt
 
-curl -d "replacing file 1 contents" http://localhost:8080/data_1.txt
+curl post -d "replacing file 1 contents" http://localhost:8080/data_1.txt
