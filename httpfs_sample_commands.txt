@@ -11,5 +11,5 @@ get 'http://localhost:8080/data_3.json'
 
 curl localhost:8080/bar -H "Content-Type: text/plain" --data "replacing file 1 contents" http://localhost:8080/data_1.txt
 
-curl localhost:8080 -d "replacing file 1 contents" http://localhost:8080/data_1.txt
-curl localhost:8080 -d "replacing file 1 contents" http://localhost:8080/data1.txt
+curl -d "replacing file 1 contents" http://localhost:8080/data_1.txt
+curl -d "replacing file 1 contents" http://localhost:8080/data1.txt

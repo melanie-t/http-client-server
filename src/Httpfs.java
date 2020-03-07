@@ -90,11 +90,11 @@ public class Httpfs {
                     // Get the first line containing the HTTP response
                     String requestLine = requestHeaders.toString();
 
-                    if (verbose) {
-                        response.append(requestHeaders);
-                        if (payload.length() > 0)
-                            response.append(payload + "\n");
-                    }
+//                    if (verbose) {
+//                        response.append(requestHeaders);
+//                        if (payload.length() > 0)
+//                            response.append(payload + "\n");
+//                    }
 
                     // Process HTTP Request
                     if (requestLine.contains("HTTP")) {
@@ -113,13 +113,14 @@ public class Httpfs {
                             String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
                             response.append(post);
                         }
-                    }
-                    else {
-                        response.append("Invalid request. Httpfs only supports POST and GET HTTP requests");
+
+                        else {
+                            response.append("\n" + httpVersion + " 400 Bad Request \n" + userAgent);
+                        }
                     }
 
                     // Send the response back
-                    out.print(response.toString());
+                    out.print(response.toString() + "\n");
                     out.close();
                     in.close();
                     socket.close();
@@ -184,8 +185,6 @@ public class Httpfs {
     }
 
     private String POST(String directory, String httpVersion, String userAgent, String requestLine, String body, boolean verbose) {
-        StringBuilder postResponse = new StringBuilder();
-
         String filePath = requestLine.substring(requestLine.indexOf("POST ")+5, requestLine.length()-1);
         String fileDirectory = directory + filePath;
 
@@ -195,21 +194,35 @@ public class Httpfs {
             System.out.println("Attempting to write file " + fileDirectory);
         }
 
-        try (Writer fileWriter = new FileWriter(fileDirectory, false);){
+        try {
+            // Check if the file exists
+            File file = new File(fileDirectory);
+            if (file.createNewFile()) {
+                String response = "\n" + httpVersion + " 201 Created " + "\n" + userAgent;
+                if (verbose) {
+                    System.out.println(response);
+                }
+                return response;
+            }
+
+            Writer fileWriter = new FileWriter(fileDirectory, false);
             fileWriter.write(body);
             fileWriter.close();
             if (verbose) {
                 System.out.println("Successfully written to the file.");
             }
+            String okResponse = "\n" + httpVersion + " 200 OK " + "\n" + userAgent;
+            if (verbose) {
+                System.out.println(okResponse);
+            }
+            return okResponse;
         } catch (IOException e) {
-            String response = httpVersion + " 403 Forbidden " + "\n" + userAgent;
-            postResponse.append(response);
             if (verbose) {
                 System.out.println("File cannot be overwritten");
             }
+            String forbidden = "\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent;
+            return forbidden;
         }
-        postResponse.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent + "\n");
-        return postResponse.toString();
     }
 
     private void HELP() {
