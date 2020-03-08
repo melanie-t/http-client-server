@@ -179,8 +179,10 @@ public class Httpfs {
                     }
                     try {
                         wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
-                        if (verbose) {
-                            returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent);
+                        returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent);
+                        if (wholeText.length() > 0) {
+                            returned.append("Content-Length: " + wholeText.length());
+                            returned.append("Content-Type:");
                         }
                         returned.append("\n" + wholeText);
                     } catch (IOException o){
