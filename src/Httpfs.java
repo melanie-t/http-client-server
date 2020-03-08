@@ -44,6 +44,7 @@ public class Httpfs {
                 for(int i = 0; i < inputSplit.length; i++){
                     if(inputSplit[i].equalsIgnoreCase("-d")){
                         directory = inputSplit[i+1];
+                        System.out.println(directory);
                         if(directory.charAt(directory.length()-1) != '/'){
                             directory += "/";
                         }
@@ -86,6 +87,7 @@ public class Httpfs {
                     String userAgent = null;
                     // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
                     String headerLine = null;
+
                     while((headerLine = in.readLine()).length() != 0){
                         if (headerLine.contains("User-Agent"))
                             userAgent = headerLine;
@@ -103,6 +105,7 @@ public class Httpfs {
                     // Get the first line containing the HTTP response
                     String requestLine = requestHeaders.toString();
 
+
 //                    if (verbose) {
 //                        response.append(requestHeaders);
 //                        if (payload.length() > 0)
@@ -113,8 +116,13 @@ public class Httpfs {
                     if (requestLine.contains("HTTP")) {
                         String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
                         String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
-
-                        if (requestType.toString().contains("GET")) {
+                        if(directory.length() >= 4){
+                            if(directory.substring(0, 4).equalsIgnoreCase("out/") || directory.substring(0, 4).equalsIgnoreCase("src/")){
+                                directory = DEFAULT_DIRECTORY;
+                                response.append("\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent);
+                            }
+                        }
+                        else if (requestType.toString().contains("GET")) {
                             // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
                             //  String data = GET(requestType);
                             //  response.append(data)
