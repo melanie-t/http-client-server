@@ -44,7 +44,6 @@ public class Httpfs {
                 for(int i = 0; i < inputSplit.length; i++){
                     if(inputSplit[i].equalsIgnoreCase("-d")){
                         directory = inputSplit[i+1];
-                        System.out.println(directory);
                         if(directory.charAt(directory.length()-1) != '/'){
                             directory += "/";
                         }
@@ -113,34 +112,36 @@ public class Httpfs {
 //                    }
 
                     // Process HTTP Request
-                    if (requestLine.contains("HTTP")) {
-                        String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
-                        String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
-                        if(directory.length() >= 4){
-                            if(directory.substring(0, 4).equalsIgnoreCase("out/") || directory.substring(0, 4).equalsIgnoreCase("src/")){
-                                directory = DEFAULT_DIRECTORY;
-                                response.append("\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent);
+                        boolean directoryForbidden = false;
+                        if (requestLine.contains("HTTP")) {
+                            String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+                            String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
+                            if (directory.length() >= 4) {
+                                if (directory.substring(0, 4).equalsIgnoreCase("out/") || directory.substring(0, 4).equalsIgnoreCase("src/")) {
+                                    directory = DEFAULT_DIRECTORY;
+                                    response.append("\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent + "\nDefaulting to data/");
+                                    System.out.println("Directory is not accessible by client. Setting directory to data/");
+                                    directoryForbidden = true;
+                                }
                             }
-                        }
-                        else if (requestType.toString().contains("GET")) {
-                            // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
-                            //  String data = GET(requestType);
-                            //  response.append(data)
-                            String get = GET(requestLine, directory, httpVersion, userAgent, verbose);
-                            response.append(get);
-                            }
+                            if (!directoryForbidden) {
+                                if (requestType.toString().contains("GET")) {
+                                    // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
+                                    //  String data = GET(requestType);
+                                    //  response.append(data)
+                                    String get = GET(requestLine, directory, httpVersion, userAgent, verbose);
+                                    response.append(get);
+                                }
 
-                        // TODO Melanie
-                        else if (requestType.toString().contains("POST")) {
-                            String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
-                            response.append(post);
+                                // TODO Melanie
+                                else if (requestType.toString().contains("POST")) {
+                                    String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
+                                    response.append(post);
+                                } else {
+                                    response.append("\n" + httpVersion + " 400 Bad Request \n" + userAgent);
+                                }
+                            };
                         }
-
-                        else {
-                            response.append("\n" + httpVersion + " 400 Bad Request \n" + userAgent);
-                        }
-                    }
-
                     // Send the response back
                     out.print(response.toString() + "\n");
                     out.close();
@@ -209,7 +210,7 @@ public class Httpfs {
         if(filesInDirectory != null){
             if(filesInDirectory.length != 0){
                 if (verbose) {
-                returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent);
+                returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent + "\n");
                 }
                 returned.append("File/Directory Name\t\t\t\tType\n");
                 for (int i = 0; i < filesInDirectory.length; i++){
