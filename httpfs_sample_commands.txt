@@ -1,0 +1,12 @@
+curl -v http://localhost:8080
+
+curl -v http://localhost:8080/data_1.txt
+curl -v http://localhost:8080/data_2.txt
+curl -v http://localhost:8080/data_3.json
+
+curl -H "Content-Type: text/plain" --data "post with header values" http://localhost:8080/data_1.txt
+
+curl -v -d "replacing file 1 contents" http://localhost:8080/data_1.txt
+curl -v -d "creating a new file" http://localhost:8080/data1.txt
+
+curl -v -X PUT -d "should not work" localhost:8080/data_1.txt
