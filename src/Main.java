@@ -10,6 +10,7 @@ public class Main {
 
         // Httpc client = new Httpc();
 
-        Httpfs fclient = new Httpfs();
+        // Httpfs fclient = new Httpfs("inline");
+        Httpfs fclient = new Httpfs("attachment");
     }
 }

@@ -8,17 +8,17 @@ import java.util.HashMap;
 
 public class Httpfs {
 
-    final int DEFAULT_PORT = 8081;
+    final int DEFAULT_PORT = 8080;
     final String DEFAULT_DIRECTORY = "data/";
 
     //initializing the hashmap with common extensions and content types
     //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
 
-    public Httpfs() {
-        init();
+    public Httpfs(String contentDisp) {
+        init(contentDisp);
     }
 
-    private void init() {
+    private void init(String contentDisp) {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
         String directory = null;
@@ -67,11 +67,11 @@ public class Httpfs {
             // Start server
             if (directory == null)
                 directory = DEFAULT_DIRECTORY;
-            server_socket(directory, port_number, verbose);
+            server_socket(directory, port_number, verbose, contentDisp);
         }
     }
 
-    private void server_socket(String directory, int server_port, boolean verbose) {
+    private void server_socket(String directory, int server_port, boolean verbose, String contentDisp) {
 
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
@@ -109,10 +109,16 @@ public class Httpfs {
                     // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
                     String headerLine = null;
 
-                    while((headerLine = in.readLine()).length() != 0){
-                        if (headerLine.contains("User-Agent"))
-                            userAgent = headerLine;
-                        requestHeaders.append(headerLine + "\n");
+                    try {
+                        while((headerLine = in.readLine()).length() != 0){
+                            if (headerLine.contains("User-Agent"))
+                                userAgent = headerLine;
+                            requestHeaders.append(headerLine + "\n");
+                        }
+                    } catch (NullPointerException e) {
+                        if (verbose) {
+                            System.out.println("Header line is empty");
+                        }
                     }
 
                     //code to read the post payload data
@@ -126,15 +132,9 @@ public class Httpfs {
                     // Get the first line containing the HTTP response
                     String requestLine = requestHeaders.toString();
 
-
-//                    if (verbose) {
-//                        response.append(requestHeaders);
-//                        if (payload.length() > 0)
-//                            response.append(payload + "\n");
-//                    }
                     System.out.println(requestLine);
                     String contentType = "";
-                    if(requestLine.contains(".")){
+                    if(requestLine.contains("/.")){
                         contentType = extensionMap.get(requestLine.substring(requestLine.indexOf("."), requestLine.indexOf("HTTP")).trim());
                     } else contentType = "folder";
 
@@ -146,31 +146,27 @@ public class Httpfs {
                             if (directory.length() >= 4) {
                                 if (directory.substring(0, 4).equalsIgnoreCase("out/") || directory.substring(0, 4).equalsIgnoreCase("src/")) {
                                     directory = DEFAULT_DIRECTORY;
-                                    response.append("\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent + "\nDefaulting to data/");
+                                    response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n");
                                     System.out.println("Directory is not accessible by client. Setting directory to data/");
                                     directoryForbidden = true;
                                 }
                             }
                             if (!directoryForbidden) {
                                 if (requestType.toString().contains("GET")) {
-                                    // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
-                                    //  String data = GET(requestType);
-                                    //  response.append(data)
-                                    String get = GET(requestLine, directory, httpVersion, userAgent, contentType, verbose);
+                                    String get = GET(requestLine, directory, httpVersion, userAgent, contentType, contentDisp, verbose);
                                     response.append(get);
                                 }
 
-                                // TODO Melanie
                                 else if (requestType.toString().contains("POST")) {
                                     String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
                                     response.append(post);
                                 } else {
-                                    response.append("\n" + httpVersion + " 400 Bad Request \n" + userAgent);
+                                    response.append(httpVersion + " 400 Bad Request \n" + userAgent + "\r\n");
                                 }
                             };
                         }
                     // Send the response back
-                    out.print(response.toString() + "\n");
+                    out.print(response.toString());
                     out.close();
                     in.close();
                     socket.close();
@@ -179,10 +175,9 @@ public class Httpfs {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // End source
     }
 
-    private String GET(String input, String directory, String httpVersion, String userAgent, String contentType, boolean verbose) {
+    private String GET(String input, String directory, String httpVersion, String userAgent, String contentType, String contentDisp, boolean verbose) {
         StringBuilder returned = new StringBuilder();
         String[] inputDivided = input.split(" ");
 
@@ -205,16 +200,22 @@ public class Httpfs {
                         System.out.println("Opening file: " + fileToOpen);
                     }
                     try {
-                        wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
-                        returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent);
-                        if (wholeText.length() > 0) {
-                            returned.append("\nContent-Length: " + wholeText.length());
-                            returned.append("\nContent-Type: " + contentType + "\n");
+                        if (contentDisp.equals("attachment")) {
+                            contentDisp = contentDisp + "; name=" + fileName;
                         }
-                        returned.append("\n" + wholeText);
+
+                        wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
+                        returned.append(httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n");
+                        if (wholeText.length() > 0) {
+                            returned.append("Content-Length: " + wholeText.length() + "\r\n");
+                            returned.append("Content-Type: " + contentType + "\r\n");
+                            returned.append("Content-Disposition: " + contentDisp + "\r\n" +
+                                    "\r\n");
+                        }
+                        returned.append(wholeText);
                     } catch (IOException o){
                         System.out.println("File cannot be opened/has no content");
-                        returned.append("\n" + httpVersion + " 404 Not found " + "\n" + userAgent);
+                        returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n");
                     }
 
                 } else {
@@ -224,7 +225,6 @@ public class Httpfs {
                         System.out.println("File to open was a folder named: " + fileToOpen);
                         System.out.println("Showing folder contents to client...");
                     }
-                    returned.append("Opening Directory: " + fileToOpen + "\n");
                     returned.append(listFiles(fileToOpen, httpVersion, userAgent,verbose));
                 }
             }
@@ -239,7 +239,7 @@ public class Httpfs {
         if(filesInDirectory != null){
             if(filesInDirectory.length != 0){
                 if (verbose) {
-                returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent + "\n");
+                returned.append(httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n");
                 }
                 returned.append("File/Directory Name\t\t\t\tType\n");
                 for (int i = 0; i < filesInDirectory.length; i++){
@@ -259,10 +259,9 @@ public class Httpfs {
             } else returned.append("Directory is empty");
         } else {
             if (verbose){
-                returned.append("\n" + httpVersion + " 404 Not found " + "\n" + userAgent);
+                returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n");
             }
-            returned.append("\nDirectory not found\n");
-
+            returned.append("Directory not found\n");
         }
         return returned.toString();
     }
@@ -281,7 +280,7 @@ public class Httpfs {
             // Check if the file exists
             File file = new File(fileDirectory);
             if (file.createNewFile()) {
-                String response = "\n" + httpVersion + " 201 Created " + "\n" + userAgent;
+                String response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n";
                 if (verbose) {
                     System.out.println(response);
                 }
@@ -294,7 +293,7 @@ public class Httpfs {
             if (verbose) {
                 System.out.println("Successfully written to the file.");
             }
-            String okResponse = "\n" + httpVersion + " 200 OK " + "\n" + userAgent;
+            String okResponse = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n";
             if (verbose) {
                 System.out.println(okResponse);
             }
@@ -303,7 +302,7 @@ public class Httpfs {
             if (verbose) {
                 System.out.println("File cannot be overwritten");
             }
-            String forbidden = "\n" + httpVersion + " 403 Forbidden " + "\n" + userAgent;
+            String forbidden = httpVersion + " 403 Forbidden " + "\r\n" + userAgent + "\r\n";
             return forbidden;
         }
     }

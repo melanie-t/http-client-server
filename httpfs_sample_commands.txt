@@ -1,17 +1,12 @@
--p 8070 -d data\\
+curl -v http://localhost:8080
 
-curl http://localhost:8080
-curl http://localhost:8080/data_1.txt
+curl -v http://localhost:8080/data_1.txt
 
-get 'http://localhost:8080'
-get 'http://localhost:8080/data_1.txt'
-
-get 'http://localhost:8080/data_2.txt'
-get 'http://localhost:8080/data_3.json'
-
+curl -v http://localhost:8080/data_3.json
+curl -v http://localhost:8080/data_2.txt
 curl localhost:8080/bar -H "Content-Type: text/plain" --data "replacing file 1 contents" http://localhost:8080/data_1.txt
 
-curl -d "replacing file 1 contents" http://localhost:8080/data_1.txt
-curl -d "replacing file 1 contents" http://localhost:8080/data1.txt
+curl -v -d "replacing file 1 contents" http://localhost:8080/data_1.txt
+curl -v -d "replacing file 1 contents" http://localhost:8080/data1.txt
 
 curl -X PUT -d 'no' localhost:8080/data_1.txt
