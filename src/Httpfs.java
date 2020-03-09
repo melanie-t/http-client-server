@@ -4,11 +4,15 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
+import java.util.HashMap;
 
 public class Httpfs {
 
     final int DEFAULT_PORT = 8081;
     final String DEFAULT_DIRECTORY = "data/";
+
+    //initializing the hashmap with common extensions and content types
+    //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
 
     public Httpfs() {
         init();
@@ -71,6 +75,24 @@ public class Httpfs {
 
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
+        //initializing the hashmap with common extensions and content types
+        //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
+        HashMap<String, String> extensionMap = new HashMap<>();
+        extensionMap.put(".xml", "application/xml");
+        extensionMap.put(".abw", "application/x-abiword");
+        extensionMap.put(".arc", "application/x-freearc");
+        extensionMap.put(".avi", "video/x-msvideo");
+        extensionMap.put(".css", "text/css");
+        extensionMap.put(".csv", "text/csv");
+        extensionMap.put(".doc", "application/msword");
+        extensionMap.put(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        extensionMap.put(".html", "text/html");
+        extensionMap.put(".js", "text/javascript");
+        extensionMap.put(".json", "application/json");
+        extensionMap.put(".pdf", "application/pdf");
+        extensionMap.put(".php", "application/php");
+        extensionMap.put(".txt", "text/plain");
+
         try (ServerSocket server = new ServerSocket(server_port)) {
             System.out.println("Server has been instantiated at port " + server_port);
             // Server initialized and waits for client requests
@@ -110,6 +132,11 @@ public class Httpfs {
 //                        if (payload.length() > 0)
 //                            response.append(payload + "\n");
 //                    }
+                    System.out.println(requestLine);
+                    String contentType = "";
+                    if(requestLine.contains(".")){
+                        contentType = extensionMap.get(requestLine.substring(requestLine.indexOf("."), requestLine.indexOf("HTTP")).trim());
+                    } else contentType = "folder";
 
                     // Process HTTP Request
                         boolean directoryForbidden = false;
@@ -129,7 +156,7 @@ public class Httpfs {
                                     // TODO Ziad: Append the data (ex: Opening data/data_1.txt) to response
                                     //  String data = GET(requestType);
                                     //  response.append(data)
-                                    String get = GET(requestLine, directory, httpVersion, userAgent, verbose);
+                                    String get = GET(requestLine, directory, httpVersion, userAgent, contentType, verbose);
                                     response.append(get);
                                 }
 
@@ -155,7 +182,7 @@ public class Httpfs {
         // End source
     }
 
-    private String GET(String input, String directory, String httpVersion, String userAgent, boolean verbose) {
+    private String GET(String input, String directory, String httpVersion, String userAgent, String contentType, boolean verbose) {
         StringBuilder returned = new StringBuilder();
         String[] inputDivided = input.split(" ");
 
@@ -181,8 +208,8 @@ public class Httpfs {
                         wholeText = new String(Files.readAllBytes(Paths.get(fileToOpen)));
                         returned.append("\n" + httpVersion + " 200 OK " + "\n" + userAgent);
                         if (wholeText.length() > 0) {
-                            returned.append("Content-Length: " + wholeText.length());
-                            returned.append("Content-Type:");
+                            returned.append("\nContent-Length: " + wholeText.length());
+                            returned.append("\nContent-Type: " + contentType + "\n");
                         }
                         returned.append("\n" + wholeText);
                     } catch (IOException o){
