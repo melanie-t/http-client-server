@@ -5,4 +5,6 @@ Instructions to run
 
 1. Add the project to your choice of IDE
 2. Build the project
-3. Run Main.java and enter Httpc commands (ex: get 'http://httpbin.org/status/418')
+3. Run Main.java and enter Httpfs commands
+
+Implemented Bonus: Content-Type and Content-Disposition
