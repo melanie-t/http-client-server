@@ -126,9 +126,6 @@ public class Httpfs {
                         payload.append((char) in.read());
                     }
 
-                    System.out.print(requestHeaders);
-                    System.out.println(payload + "\n");
-
                     // Get the first line containing the HTTP response
                     String requestLine = requestHeaders.toString();
 
@@ -144,9 +141,8 @@ public class Httpfs {
                             String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
                             String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
                             if (directory.length() >= 4) {
-                                if (directory.substring(0, 4).equalsIgnoreCase("out/") || directory.substring(0, 4).equalsIgnoreCase("src/")) {
+                                if (requestLine.contains("/..") || requestLine.contains("/src") || requestLine.contains ("out") || directory.substring(0, 4).equalsIgnoreCase("out") || directory.substring(0, 4).equalsIgnoreCase("src")) {
                                     directory = DEFAULT_DIRECTORY;
-                                    response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n");
                                     System.out.println("Directory is not accessible by client. Setting directory to data/");
                                     directoryForbidden = true;
                                 }
@@ -161,12 +157,14 @@ public class Httpfs {
                                     String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
                                     response.append(post);
                                 } else {
-                                    response.append(httpVersion + " 400 Bad Request \n" + userAgent + "\r\n");
+                                    response.append(httpVersion + " 400 Bad Request \n" + userAgent + "\r\n\r\n");
                                 }
-                            };
+                            } else {
+                                response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
+                            }
                         }
                     // Send the response back
-                    out.print(response.toString());
+                    out.print(response.toString() + "\n");
                     out.close();
                     in.close();
                     socket.close();
@@ -212,10 +210,10 @@ public class Httpfs {
                             returned.append("Content-Disposition: " + contentDisp + "\r\n" +
                                     "\r\n");
                         }
-                        returned.append(wholeText);
+                        returned.append(wholeText + "\r\n");
                     } catch (IOException o){
                         System.out.println("File cannot be opened/has no content");
-                        returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n");
+                        returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n");
                     }
 
                 } else {
@@ -256,12 +254,12 @@ public class Httpfs {
                     returned.append(fileName).append("\t\t\t\t\t\t").append(fileType).append("\n"); //FilenameUtils.getExtension(filesInDirectory[i])
                 }
 
-            } else returned.append("Directory is empty");
+            } else returned.append(httpVersion + " 204 No Content " + "\r\n" + userAgent + "\r\n\r\n" + "Directory is empty.");
         } else {
             if (verbose){
-                returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n");
+                returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory does not exist.");
             }
-            returned.append("Directory not found\n");
+            returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory was not found.");
         }
         return returned.toString();
     }
@@ -280,7 +278,8 @@ public class Httpfs {
             // Check if the file exists
             File file = new File(fileDirectory);
             if (file.createNewFile()) {
-                String response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n";
+                String response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n\r\n" +
+                        "File created successfully.";
                 if (verbose) {
                     System.out.println(response);
                 }
@@ -293,7 +292,8 @@ public class Httpfs {
             if (verbose) {
                 System.out.println("Successfully written to the file.");
             }
-            String okResponse = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n";
+            String okResponse = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n\r\n" +
+                    "Successfully written to the file.";
             if (verbose) {
                 System.out.println(okResponse);
             }
@@ -302,7 +302,7 @@ public class Httpfs {
             if (verbose) {
                 System.out.println("File cannot be overwritten");
             }
-            String forbidden = httpVersion + " 403 Forbidden " + "\r\n" + userAgent + "\r\n";
+            String forbidden = httpVersion + " 403 Forbidden " + "\r\n" + userAgent + "\r\n\r\n";
             return forbidden;
         }
     }
