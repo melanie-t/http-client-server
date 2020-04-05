@@ -7,18 +7,19 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 public class UDPfs {
-
-    final int DEFAULT_PORT = 8080;
-    final String DEFAULT_DIRECTORY = "data/";
+    private UDPfs() { }
+    final static int DEFAULT_PORT = 8080;
+    final static String DEFAULT_DIRECTORY = "data/";
 
     //initializing the hashmap with common extensions and content types
     //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
 
-    public UDPfs(String contentDisp) {
+    public static void main(String[] args) {
+        String contentDisp = "inline";
         init(contentDisp);
     }
 
-    private void init(String contentDisp) {
+    private static void init(String contentDisp) {
         // Default port is 8080 if not specified
         int port_number = DEFAULT_PORT;
         String directory = null;
@@ -71,7 +72,7 @@ public class UDPfs {
         }
     }
 
-    private void server_socket(String directory, int server_port, boolean verbose, String contentDisp) {
+    private static void server_socket(String directory, int server_port, boolean verbose, String contentDisp) {
 
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
@@ -175,7 +176,7 @@ public class UDPfs {
         }
     }
 
-    private String GET(String input, String directory, String httpVersion, String userAgent, String contentType, String contentDisp, boolean verbose) {
+    private static String GET(String input, String directory, String httpVersion, String userAgent, String contentType, String contentDisp, boolean verbose) {
         StringBuilder returned = new StringBuilder();
         String[] inputDivided = input.split(" ");
 
@@ -230,7 +231,7 @@ public class UDPfs {
         }
         return returned.toString();
     }
-    private String listFiles(String parent, String httpVersion, String userAgent, boolean verbose){
+    private static String listFiles(String parent, String httpVersion, String userAgent, boolean verbose){
         StringBuilder returned = new StringBuilder();
         File dataDir = new File(parent);
         File[] filesInDirectory = dataDir.listFiles();
@@ -264,7 +265,7 @@ public class UDPfs {
         return returned.toString();
     }
 
-    private String POST(String directory, String httpVersion, String userAgent, String requestLine, String body, boolean verbose) {
+    private static String POST(String directory, String httpVersion, String userAgent, String requestLine, String body, boolean verbose) {
         String filePath = requestLine.substring(requestLine.indexOf("POST ")+5, requestLine.length()-1);
         String fileDirectory = directory + filePath;
 
@@ -307,7 +308,7 @@ public class UDPfs {
         }
     }
 
-    private void HELP() {
+    private static void HELP() {
         System.out.println("httpfs is a simple file server." +
                 "\n" + "Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]" +
                 "\n\t" + "-v\t Prints debugging messages. " +

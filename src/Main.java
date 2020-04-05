@@ -7,10 +7,8 @@
 public class Main {
 
     public static void main(String[] args) {
-
-        // Httpc client = new Httpc();
-
-        // Httpfs fclient = new Httpfs("inline");
-        Httpfs fclient = new Httpfs("attachment");
+//        Httpfs fclient = new Httpfs("inline");
+//        Httpc client = new Httpc();
+        // Httpfs fclient = new Httpfs("attachment");
     }
 }

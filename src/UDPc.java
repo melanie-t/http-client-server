@@ -8,21 +8,28 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
-import java.net.URL;
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class UDPc {
+import static java.nio.channels.SelectionKey.OP_READ;
 
-    public UDPc() {
+public class UDPc {
+    private UDPc() {}
+    public static void main(String[] args) {
         init();
     }
 
-    private void init() {
+    private static void init() {
         System.out.println("Welcome to httpc. To quit the application, enter /q");
 
         Scanner kb = new Scanner(System.in);
@@ -61,7 +68,7 @@ public class UDPc {
         System.out.println("Httpc terminated successfully");
     }
 
-    private String[] parseInput(String input) {
+    private static String[] parseInput(String input) {
         String[] parameters = new String[]{"web", "header", "data"};
         String web = "";
         String headers = "";
@@ -132,7 +139,7 @@ public class UDPc {
         return parameters;
     }
 
-    private String create_body(String input){
+    private static String create_body(String input){
         StringBuilder body = new StringBuilder();
         String[] keys = new String[5];
         String[] values = new String[5];
@@ -179,7 +186,7 @@ public class UDPc {
     }
 
     // get [-v] [-h key:value] URL
-    private void GET(String input) {
+    private static void GET(String input) {
         boolean verbose = false;
         if (input.contains("-v")) {
             input = input.replace("-v", "").trim();
@@ -201,7 +208,7 @@ public class UDPc {
     }
 
     // post [-v] [-h key:value] [-d inline-data] [-f file] URL
-    private void POST(String input) {
+    private static void POST(String input) {
         boolean verbose = false;
         if (input.contains("-v")) {
             input = input.replace("-v", "");
@@ -222,7 +229,7 @@ public class UDPc {
         }
     }
 
-    private void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
+    private static void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
         URL url = new URL(web);
 
         String host = url.getHost();
@@ -238,6 +245,32 @@ public class UDPc {
         Socket socket = new Socket(host, 80);
         String request = requestType + " " + path + query + " HTTP/1.0\r\n"
                 + headers + data + "\r\n";
+
+        /*
+        // Router address
+        String routerHost = "localhost";
+        int routerPort = 3000;
+
+        // Server address
+        String serverHost = "localhost";
+        int serverPort = 8007;
+
+        SocketAddress routerAddress = new InetSocketAddress(routerHost, routerPort);
+        InetSocketAddress serverAddress = new InetSocketAddress(serverHost, serverPort);
+
+        Packet p = new Packet.Builder()
+                .setType(0)
+                .setSequenceNumber(1L)
+                .setPortNumber(serverAddress.getPort())
+                .setPeerAddress(serverAddress.getAddress())
+                .setPayload(data.getBytes())
+                .create();
+
+        DatagramSocket udpSocket = new DatagramSocket();
+        DatagramPacket sendPacket = new DatagramPacket(p.toBytes(), p.toBytes().length, routerAddress);
+        udpSocket.send(sendPacket);
+        udpSocket.close();
+         */
 
         InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
@@ -268,7 +301,7 @@ public class UDPc {
         // ] End of reference
     }
 
-    private void HELP(String input) {
+    private static void HELP(String input) {
         if (input.contains("get")) {
             System.out.println("Usage: httpc get [-v] [-h key:value] URL" +
                     "\n\n" + "Get executes a HTTP GET request for a given URL. " +
