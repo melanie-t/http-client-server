@@ -8,6 +8,9 @@ import java.nio.ByteOrder;
  * Packet represents a simulated network packet.
  * As we don't have unsigned types in Java, we can achieve this by using a larger type.
  */
+
+// This Packet class is from the Assignment .zip file provided to us
+
 public class Packet {
 
     public static final int MIN_LEN = 11;

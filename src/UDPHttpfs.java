@@ -1,11 +1,9 @@
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.DatagramChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -15,7 +13,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class UDPHttpfs {
     private UDPHttpfs() { }
-    final static int DEFAULT_PORT = 8007;
+    final static String SERVER_IP = "192.168.2.3";
+    final static int SERVER_PORT = 8007;
     final static String DEFAULT_DIRECTORY = "data/";
 
     //initializing the hashmap with common extensions and content types
@@ -28,7 +27,7 @@ public class UDPHttpfs {
 
     private static void init(String contentDisp) {
         // Default port is 8007 if not specified
-        int port_number = DEFAULT_PORT;
+        int port_number = SERVER_PORT;
         String directory = null;
         boolean verbose = false;
 
@@ -208,8 +207,10 @@ public class UDPHttpfs {
         extensionMap.put(".php", "application/php");
         extensionMap.put(".txt", "text/plain");
 
+        // Reference: UDPServer.java provided to us
         try (DatagramChannel channel = DatagramChannel.open()) {
             // Server initialized and waits for client requests
+            // channel.bind(new InetSocketAddress(SERVER_IP, server_port)); // Doesn't work
             channel.bind(new InetSocketAddress(server_port));
             System.out.printf("INFO: EchoServer is listening at %s\n", channel.getLocalAddress());
             ByteBuffer buf = ByteBuffer
@@ -218,41 +219,44 @@ public class UDPHttpfs {
             for (; ; ) {
                 buf.clear();
                 SocketAddress router = channel.receive(buf);
-
                 // Parse a packet from the received raw data.
                 buf.flip();
                 Packet packet = Packet.fromBuffer(buf);
                 buf.flip();
 
+                InetAddress clientAddr = packet.getPeerAddress();
+                int clientPort = packet.getPeerPort();
+                Long sequenceNumber = packet.getSequenceNumber();
+                int type = packet.getType();
                 String clientPayload = new String(packet.getPayload(), UTF_8);
-                System.out.printf("INFO: Packet: %s\n", packet);
-                System.out.printf("INFO: Payload: %s\n", clientPayload);
-                System.out.printf("INFO: Router: %s\n", router);
-
+                System.out.printf("---------------------------------------------------\n");
+                System.out.printf("RCVD: Packet: %s\n", packet);
+                System.out.printf("Type: %s\n", type);
+                System.out.printf("Sequence number: %s\n", sequenceNumber);
+                System.out.printf("Router: %s\n", router);
+                System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
+                System.out.printf("Payload:\n%s\n", clientPayload);
+                System.out.printf("---------------------------------------------------\n");
                 StringBuilder requestHeaders = new StringBuilder();
-                // StringBuilder payload = new StringBuilder();
                 StringBuilder response = new StringBuilder();
-                String userAgent = null;
-                String data = null;
+                String userAgent = "";
+                String data = "";
 
                 String[] requestLines = clientPayload.split("\\r\\n");
                 for (String line : requestLines) {
                     if (line.equals("")) {
-                        // Headers end when there is an empty line
-                        data = requestLines[requestLines.length-1];
                         break;
                     }
-
                     // Process line by line
                     if (line.contains("User-Agent"))
                         userAgent = line;
                     requestHeaders.append(line+"\r\n");
                 }
 
+                // Headers end when there is an empty line
+                data = clientPayload.substring((clientPayload.indexOf("\r\n\r\n"))).replaceAll("\r|\n", "");
+
                 String requestLine = requestHeaders.toString();
-                System.out.println("User Agent -- " + userAgent);
-                System.out.println("Request -- " + requestLine);
-                System.out.println("Data -- " + data);
                 String contentType = "";
                 if (requestLine.contains("/.")) {
                     contentType = extensionMap.get(requestLine.substring(requestLine.indexOf("."), requestLine.indexOf("HTTP")).trim());
@@ -262,7 +266,7 @@ public class UDPHttpfs {
                 boolean directoryForbidden = false;
                 if (requestLine.contains("HTTP")) {
                     String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
-                    String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
+                    String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\r\n"));
                     if (directory.length() >= 4) {
                         if (requestLine.contains("/..") || requestLine.contains("/src") || requestLine.contains("out") || directory.substring(0, 4).equalsIgnoreCase("out") || directory.substring(0, 4).equalsIgnoreCase("src")) {
                             directory = DEFAULT_DIRECTORY;
@@ -283,12 +287,24 @@ public class UDPHttpfs {
                     } else {
                         response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
                     }
-//                }
 
                     Packet resp = packet.toBuilder()
+                            .setType(1)
+                            .setSequenceNumber(sequenceNumber)
+                            .setPortNumber(clientPort)
+                            .setPeerAddress(clientAddr)
                             .setPayload(response.toString().getBytes())
                             .create();
                     channel.send(resp.toBuffer(), router);
+                    System.out.printf("---------------------------------------------------\n");
+                    System.out.printf("SEND: Packet: %s\n", resp);
+                    System.out.printf("Type: %s\n", type);
+                    System.out.printf("Sequence number: %s\n", sequenceNumber);
+                    System.out.printf("Router: %s\n", router);
+                    System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
+                    String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
+                    System.out.printf("Payload:\n%s\n",  payload);
+                    System.out.printf("---------------------------------------------------\n");
                 }
             }
         } catch (Exception e) {
@@ -375,12 +391,12 @@ public class UDPHttpfs {
                     returned.append(fileName).append("\t\t\t\t\t\t").append(fileType).append("\n"); //FilenameUtils.getExtension(filesInDirectory[i])
                 }
 
-            } else returned.append(httpVersion + " 204 No Content " + "\r\n" + userAgent + "\r\n\r\n" + "Directory is empty.");
+            } else returned.append(httpVersion + " 204 No Content " + "\r\n" + userAgent + "\r\n\r\n" + "Directory is empty.\r\n");
         } else {
             if (verbose){
-                returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory does not exist.");
+                returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory does not exist.\n");
             }
-            returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory was not found.");
+            returned.append(httpVersion + " 404 Not found " + "\r\n" + userAgent + "\r\n\r\n" + "Directory was not found.\n");
         }
         return returned.toString();
     }
@@ -400,7 +416,7 @@ public class UDPHttpfs {
             File file = new File(fileDirectory);
             if (file.createNewFile()) {
                 String response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n\r\n" +
-                        "File created successfully.";
+                        "File created successfully.\r\n";
                 if (verbose) {
                     System.out.println(response);
                 }
@@ -414,14 +430,14 @@ public class UDPHttpfs {
                 System.out.println("Successfully written to the file.");
             }
             String okResponse = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n\r\n" +
-                    "Successfully written to the file.";
+                    "Successfully written to the file.\r\n";
             if (verbose) {
                 System.out.println(okResponse);
             }
             return okResponse;
         } catch (IOException e) {
             if (verbose) {
-                System.out.println("File cannot be overwritten");
+                System.out.println("File cannot be overwritten\r\n");
             }
             String forbidden = httpVersion + " 403 Forbidden " + "\r\n" + userAgent + "\r\n\r\n";
             return forbidden;
