@@ -23,7 +23,10 @@ public class UDPClient {
 
     private static final Logger logger = LoggerFactory.getLogger(UDPClient.class);
 
-    private static void createPacket()
+    private static void createPacket(){}
+
+    private static void sendto(DatagramPacket pkt, InetAddress routerAddr) {}
+
     private static void runClient(SocketAddress routerAddr, InetSocketAddress serverAddr) throws IOException {
         try(DatagramChannel channel = DatagramChannel.open()){
             String msg = "Hello World";
@@ -64,11 +67,7 @@ public class UDPClient {
             keys.clear();
         }
     }
-
-    private static void sendto(DatagramPacket p1, InetAddress router_addr) {
-
-    }
-
+    
     public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         parser.accepts("router-host", "Router hostname")
