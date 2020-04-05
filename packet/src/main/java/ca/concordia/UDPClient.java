@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -21,6 +23,7 @@ public class UDPClient {
 
     private static final Logger logger = LoggerFactory.getLogger(UDPClient.class);
 
+    private static void createPacket()
     private static void runClient(SocketAddress routerAddr, InetSocketAddress serverAddr) throws IOException {
         try(DatagramChannel channel = DatagramChannel.open()){
             String msg = "Hello World";
@@ -60,6 +63,10 @@ public class UDPClient {
 
             keys.clear();
         }
+    }
+
+    private static void sendto(DatagramPacket p1, InetAddress router_addr) {
+
     }
 
     public static void main(String[] args) throws IOException {
