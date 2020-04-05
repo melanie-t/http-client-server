@@ -1,14 +1,21 @@
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.DatagramChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class UDPfs {
-    private UDPfs() { }
-    final static int DEFAULT_PORT = 8080;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class UDPHttpfs {
+    private UDPHttpfs() { }
+    final static int DEFAULT_PORT = 8007;
     final static String DEFAULT_DIRECTORY = "data/";
 
     //initializing the hashmap with common extensions and content types
@@ -20,7 +27,7 @@ public class UDPfs {
     }
 
     private static void init(String contentDisp) {
-        // Default port is 8080 if not specified
+        // Default port is 8007 if not specified
         int port_number = DEFAULT_PORT;
         String directory = null;
         boolean verbose = false;
@@ -64,13 +71,13 @@ public class UDPfs {
                 HELP();
             }
 
-
             // Start server
             if (directory == null)
                 directory = DEFAULT_DIRECTORY;
             server_socket(directory, port_number, verbose, contentDisp);
         }
     }
+
 
     private static void server_socket(String directory, int server_port, boolean verbose, String contentDisp) {
 
@@ -175,6 +182,136 @@ public class UDPfs {
             e.printStackTrace();
         }
     }
+
+//    private static void server_socket(String directory, int server_port, boolean verbose, String contentDisp) throws IOException {
+//        // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
+//        // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
+//        // Initializing the hashmap with common extensions and content types
+//        // Source #3: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
+//        HashMap<String, String> extensionMap = new HashMap<>();
+//        extensionMap.put(".xml", "application/xml");
+//        extensionMap.put(".abw", "application/x-abiword");
+//        extensionMap.put(".arc", "application/x-freearc");
+//        extensionMap.put(".avi", "video/x-msvideo");
+//        extensionMap.put(".css", "text/css");
+//        extensionMap.put(".csv", "text/csv");
+//        extensionMap.put(".doc", "application/msword");
+//        extensionMap.put(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+//        extensionMap.put(".html", "text/html");
+//        extensionMap.put(".js", "text/javascript");
+//        extensionMap.put(".json", "application/json");
+//        extensionMap.put(".pdf", "application/pdf");
+//        extensionMap.put(".php", "application/php");
+//        extensionMap.put(".txt", "text/plain");
+//
+//        try (DatagramChannel channel = DatagramChannel.open()) {
+//            // Server initialized and waits for client requests
+//            channel.bind(new InetSocketAddress(server_port));
+//            System.out.printf("INFO: EchoServer is listening at %s\n", channel.getLocalAddress());
+//            ByteBuffer buf = ByteBuffer
+//                    .allocate(Packet.MAX_LEN)
+//                    .order(ByteOrder.BIG_ENDIAN);
+//            for (; ; ) {
+//                buf.clear();
+//                SocketAddress router = channel.receive(buf);
+//
+//                // Parse a packet from the received raw data.
+//                buf.flip();
+//                Packet packet = Packet.fromBuffer(buf);
+//                buf.flip();
+//
+//                String clientPayload = new String(packet.getPayload(), UTF_8);
+//                System.out.printf("INFO: Packet: %s\n", packet);
+//                System.out.printf("INFO: Payload: %s\n", clientPayload);
+//                System.out.printf("INFO: Router: %s\n", router);
+//
+//                try (Socket socket = server.accept()) {
+//                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+//                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//
+//                    StringBuilder requestHeaders = new StringBuilder();
+//                    StringBuilder payload = new StringBuilder();
+//                    StringBuilder response = new StringBuilder();
+//                    String userAgent = null;
+//                    // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
+//                    String headerLine = null;
+//
+//                    try {
+//                        while((headerLine = in.readLine()).length() != 0){
+//                            if (headerLine.contains("User-Agent"))
+//                                userAgent = headerLine;
+//                            requestHeaders.append(headerLine + "\n");
+//                        }
+//                    } catch (NullPointerException e) {
+//                        if (verbose) {
+//                            System.out.println("Header line is empty");
+//                        }
+//                    }
+//
+//                    //code to read the post payload data
+//                    while(in.ready()){
+//                        payload.append((char) in.read());
+//                    }
+//
+//                    // Get the first line containing the HTTP response
+//                    String requestLine = requestHeaders.toString();
+//
+//                    System.out.println(requestLine);
+//                    String contentType = "";
+//                    if(requestLine.contains("/.")){
+//                        contentType = extensionMap.get(requestLine.substring(requestLine.indexOf("."), requestLine.indexOf("HTTP")).trim());
+//                    } else contentType = "folder";
+//
+//                    // Process HTTP Request
+//                    boolean directoryForbidden = false;
+//                    if (requestLine.contains("HTTP")) {
+//                        String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
+//                        String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
+//                        if (directory.length() >= 4) {
+//                            if (requestLine.contains("/..") || requestLine.contains("/src") || requestLine.contains ("out") || directory.substring(0, 4).equalsIgnoreCase("out") || directory.substring(0, 4).equalsIgnoreCase("src")) {
+//                                directory = DEFAULT_DIRECTORY;
+//                                System.out.println("Directory is not accessible by client. Setting directory to data/");
+//                                directoryForbidden = true;
+//                            }
+//                        }
+//                        if (!directoryForbidden) {
+//                            if (requestType.toString().contains("GET")) {
+//                                String get = GET(requestLine, directory, httpVersion, userAgent, contentType, contentDisp, verbose);
+//                                response.append(get);
+//                            }
+//
+//                            else if (requestType.toString().contains("POST")) {
+//                                String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
+//                                response.append(post);
+//                            } else {
+//                                response.append(httpVersion + " 400 Bad Request \n" + userAgent + "\r\n\r\n");
+//                            }
+//                        } else {
+//                            response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
+//                        }
+//                    }
+//                    // Send the response back
+//                    out.print(response.toString() + "\n");
+//                    out.close();
+//                    in.close();
+//                    socket.close();
+//                }
+//            }
+//
+//                // Send the response to the router not the client.
+//                // The peer address of the packet is the address of the client already.
+//                // We can use toBuilder to copy properties of the current packet.
+//                // This demonstrate how to create a new packet from an existing packet.
+//                Packet resp = packet.toBuilder()
+//                        .setPayload(payload.getBytes())
+//                        .create();
+//                channel.send(resp.toBuffer(), router);
+//
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private static String GET(String input, String directory, String httpVersion, String userAgent, String contentType, String contentDisp, boolean verbose) {
         StringBuilder returned = new StringBuilder();

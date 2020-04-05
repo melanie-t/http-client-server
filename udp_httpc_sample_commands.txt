@@ -1,0 +1,14 @@
+GET 'http://localhost:8007'
+GET 'http://localhost:8007/data_1.txt'
+
+
+GET 'http://localhost:8007/data_1.txt'
+GET -v 'http://localhost:8007/data_2.txt'
+GET -v 'http://localhost:8007/data_3.json'
+
+POST -H "Content-Type: text/plain" --data "post with header values" 'h'ttp://localhost:8007/data_1.txt'
+
+POST -v -d "replacing file 1 contents" 'http://localhost:8007/data_1.txt'
+POST -v -d "creating a new file" 'http://localhost:8007/data1.txt'
+
+POST -v -X PUT -d "should not work" 'localhost:8007/data_1.txt'

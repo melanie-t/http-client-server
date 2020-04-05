@@ -24,8 +24,8 @@ import java.util.regex.Pattern;
 
 import static java.nio.channels.SelectionKey.OP_READ;
 
-public class UDPc {
-    private UDPc() {}
+public class UDPHttpc {
+    private UDPHttpc() {}
     public static void main(String[] args) {
         init();
     }
@@ -336,23 +336,11 @@ public class UDPc {
                     .setSequenceNumber(1L)
                     .setPortNumber(serverAddress.getPort())
                     .setPeerAddress(serverAddress.getAddress())
-                    .setPayload(msg.getBytes())
+                    .setPayload(request.getBytes())
                     .create();
             channel.send(p.toBuffer(), routerAddress);
 
             System.out.printf("INFO: Sending \"{}\" to router at {}\n", msg, routerAddress);
-
-//            Packet pk1 = new Packet.Builder()
-//                    .setType(0)
-//                    .setSequenceNumber(1L)
-//                    .setPortNumber(serverAddress.getPort())
-//                    .setPeerAddress(serverAddress.getAddress())
-//                    .setPayload(data.getBytes())
-//                    .create();
-//
-//            DatagramPacket pkt = new DatagramPacket(pk1.toBytes(), pk1.toBytes().length, routerAddress);
-//            DatagramSocket socket = new DatagramSocket();
-//            socket.send(pkt);
 
             // Try to receive a packet within timeout.
             channel.configureBlocking(false);
@@ -372,10 +360,10 @@ public class UDPc {
             SocketAddress router = channel.receive(buf);
             buf.flip();
             Packet resp = Packet.fromBuffer(buf);
-            System.out.printf("INFO: Packet: {}\n", resp);
-            System.out.printf("INFO: Router: {}\n", router);
+            System.out.printf("INFO: Packet: %s\n", resp);
+            System.out.printf("INFO: Router: %s\n", router);
             String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
-            System.out.printf("INFO: Payload: {}\n",  payload);
+            System.out.printf("INFO: Payload: %s\n",  payload);
 
             keys.clear();
         }
