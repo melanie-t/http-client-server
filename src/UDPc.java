@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 import static java.nio.channels.SelectionKey.OP_READ;
 
 public class UDPc {
@@ -229,6 +230,7 @@ public class UDPc {
         }
     }
 
+    /*
     private static void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
         URL url = new URL(web);
 
@@ -242,11 +244,10 @@ public class UDPc {
 
         // Referenced: Cristian's Httpc from tutorial [
         // Create socket using standard port 80 for web
-        Socket socket = new Socket(host, 80);
+        // Socket socket = new Socket(host, 80);
         String request = requestType + " " + path + query + " HTTP/1.0\r\n"
                 + headers + data + "\r\n";
 
-        /*
         // Router address
         String routerHost = "localhost";
         int routerPort = 3000;
@@ -266,38 +267,120 @@ public class UDPc {
                 .setPayload(data.getBytes())
                 .create();
 
-        DatagramSocket udpSocket = new DatagramSocket();
+        DatagramSocket socket = new DatagramSocket();
         DatagramPacket sendPacket = new DatagramPacket(p.toBytes(), p.toBytes().length, routerAddress);
-        udpSocket.send(sendPacket);
-        udpSocket.close();
-         */
+        socket.send(sendPacket);
 
-        InputStream inputStream = socket.getInputStream();
-        OutputStream outputStream = socket.getOutputStream();
+        // Try to receive a packet within timeout.
+        channel.configureBlocking(false);
+        Selector selector = Selector.open();
+        channel.register(selector, OP_READ);
+        logger.info("Waiting for the response");
+        selector.select(5000);
 
-        outputStream.write(request.getBytes());
-        outputStream.flush();
-
-        StringBuilder response = new StringBuilder();
-
-        int response_data = inputStream.read();
-
-        while(response_data != -1) {
-            response.append((char) response_data);
-            response_data = inputStream.read();
+        Set<SelectionKey> keys = selector.selectedKeys();
+        if(keys.isEmpty()){
+            logger.error("No response after timeout");
+            return;
         }
 
-        if (response.length() > 0) {
-            if (verbose) {
-                System.out.println(response);
-            } else {
-                System.out.println(response.substring(response.indexOf("\r\n\r\n")));
+        // We just want a single response.
+        ByteBuffer buf = ByteBuffer.allocate(Packet.MAX_LEN);
+        SocketAddress router = channel.receive(buf);
+        buf.flip();
+        Packet resp = Packet.fromBuffer(buf);
+        logger.info("Packet: {}", resp);
+        logger.info("Router: {}", router);
+        String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
+        logger.info("Payload: {}",  payload);
+
+        keys.clear();
+
+        //socket.close();
+        // ] End of reference
+    }
+     */
+
+    private static void send_request(String requestType, String web, String headers, String data, boolean verbose) throws Exception {
+        URL url = new URL(web);
+
+        String host = url.getHost();
+        String path = url.getPath();
+        String query = url.getQuery();
+        if (query != null) {
+            query = "?" + query;
+        } else
+            query = "";
+
+        // Referenced: Cristian's Httpc from tutorial [
+        // Create socket using standard port 80 for web
+        // Socket socket = new Socket(host, 80);
+        String request = requestType + " " + path + query + " HTTP/1.0\r\n"
+                + headers + data + "\r\n";
+
+        // Router address
+        String routerHost = "localhost";
+        int routerPort = 3000;
+
+        // Server address
+        String serverHost = "localhost";
+        int serverPort = 8007;
+
+        SocketAddress routerAddress = new InetSocketAddress(routerHost, routerPort);
+        InetSocketAddress serverAddress = new InetSocketAddress(serverHost, serverPort);
+
+        try(DatagramChannel channel = DatagramChannel.open()){
+            String msg = "Hello World";
+            Packet p = new Packet.Builder()
+                    .setType(0)
+                    .setSequenceNumber(1L)
+                    .setPortNumber(serverAddress.getPort())
+                    .setPeerAddress(serverAddress.getAddress())
+                    .setPayload(msg.getBytes())
+                    .create();
+            channel.send(p.toBuffer(), routerAddress);
+
+            System.out.printf("INFO: Sending \"{}\" to router at {}\n", msg, routerAddress);
+
+//            Packet pk1 = new Packet.Builder()
+//                    .setType(0)
+//                    .setSequenceNumber(1L)
+//                    .setPortNumber(serverAddress.getPort())
+//                    .setPeerAddress(serverAddress.getAddress())
+//                    .setPayload(data.getBytes())
+//                    .create();
+//
+//            DatagramPacket pkt = new DatagramPacket(pk1.toBytes(), pk1.toBytes().length, routerAddress);
+//            DatagramSocket socket = new DatagramSocket();
+//            socket.send(pkt);
+
+            // Try to receive a packet within timeout.
+            channel.configureBlocking(false);
+            Selector selector = Selector.open();
+            channel.register(selector, OP_READ);
+            System.out.printf("INFO: Waiting for the response\n");
+            selector.select(5000);
+
+            Set<SelectionKey> keys = selector.selectedKeys();
+            if(keys.isEmpty()){
+                System.out.printf("ERROR: No response after timeout\n");
+                return;
             }
-        } else {
-            System.out.println("The response is empty");
+
+            // We just want a single response.
+            ByteBuffer buf = ByteBuffer.allocate(Packet.MAX_LEN);
+            SocketAddress router = channel.receive(buf);
+            buf.flip();
+            Packet resp = Packet.fromBuffer(buf);
+            System.out.printf("INFO: Packet: {}\n", resp);
+            System.out.printf("INFO: Router: {}\n", router);
+            String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
+            System.out.printf("INFO: Payload: {}\n",  payload);
+
+            keys.clear();
         }
 
-        socket.close();
+        //socket.close();
         // ] End of reference
     }
 
