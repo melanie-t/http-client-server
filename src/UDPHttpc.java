@@ -330,7 +330,6 @@ public class UDPHttpc {
         InetSocketAddress serverAddress = new InetSocketAddress(serverHost, serverPort);
 
         try(DatagramChannel channel = DatagramChannel.open()){
-            String msg = "Hello World";
             Packet p = new Packet.Builder()
                     .setType(0)
                     .setSequenceNumber(1L)
@@ -340,7 +339,7 @@ public class UDPHttpc {
                     .create();
             channel.send(p.toBuffer(), routerAddress);
 
-            System.out.printf("INFO: Sending \"{}\" to router at {}\n", msg, routerAddress);
+            System.out.printf("INFO: Sending \"{}\" to router at {}\n", request, routerAddress);
 
             // Try to receive a packet within timeout.
             channel.configureBlocking(false);
