@@ -78,6 +78,7 @@ public class UDPHttpc {
 
         if (input.contains("-d")){
             data = create_body(input);
+
         } else if (input.contains("-f")){
             String fileToOpen = "";
             try {
@@ -145,10 +146,11 @@ public class UDPHttpc {
         String[] keys = new String[5];
         String[] values = new String[5];
         //regex with pattern and matcher created to find all key values between double quotes
-        int first_brace = input.indexOf("{");
-        int second_brace = input.indexOf("}");
+        if (input.contains("{") && input.contains("}")){
+            int first_brace = input.indexOf("{");
+            int second_brace = input.indexOf("}");
 
-        if (first_brace != -1 && second_brace != -1) {
+            if (first_brace != -1 && second_brace != -1) {
             String dataToParse = input.substring(first_brace + 1, second_brace);
             Pattern key = Pattern.compile("\"([^\"]*)\"");
             Matcher match = key.matcher(dataToParse);
@@ -175,14 +177,24 @@ public class UDPHttpc {
 
             //body is a combination of all key:value combinations
             body = new StringBuilder("{");
-            for(int bodyEntry = 0; bodyEntry< bodyEntries.length; bodyEntry++){
-                if (bodyEntry != bodyEntries.length -1)
+            for(int bodyEntry = 0; bodyEntry< bodyEntries.length; bodyEntry++) {
+                if (bodyEntry != bodyEntries.length - 1)
                     body.append(bodyEntries[bodyEntry]).append(",");
                 else body.append(bodyEntries[bodyEntry]).append("}");
             }
-        } else {
+            }
+        }else if (input != null){
+            //String[] parameters = StringUtils.split(" ");
+            String contentToWrite = "\r\nno content";
+            Pattern p = Pattern.compile("'([^\"]*)'");
+            Matcher m = p.matcher(input);
+            m.find();
+            contentToWrite = "\r\n" + m.group(1).substring(0,m.group(1).indexOf("'"));
+            body = new StringBuilder(contentToWrite);
+        }else {
             System.out.println("[INVALID ARGUMENT] Data not specified or in the wrong format");
         }
+        System.out.println("RETURNING THIS CONTENT:" + body.toString());
         return body.toString();
     }
 
