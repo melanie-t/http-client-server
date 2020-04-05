@@ -363,7 +363,7 @@ public class UDPHttpc {
             System.out.printf("INFO: Packet: %s\n", resp);
             System.out.printf("INFO: Router: %s\n", router);
             String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
-            System.out.printf("INFO: Payload: %s\n",  payload);
+            System.out.printf("RESPONSE: \n%s\n",  payload);
 
             keys.clear();
         }

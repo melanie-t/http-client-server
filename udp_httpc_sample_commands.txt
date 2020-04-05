@@ -1,14 +1,16 @@
-GET 'http://localhost:8007'
-GET 'http://localhost:8007/data_1.txt'
+get 'http://localhost:8007/data_1.txt'
+get -v 'http://localhost:8007/data_2.txt'
+get -v 'http://localhost:8007/data_3.json'
 
+post -h Content-Type:application/json -d '{"Assignment": 1}' 'http://localhost:8007/data_1.txt'
 
-GET 'http://localhost:8007/data_1.txt'
-GET -v 'http://localhost:8007/data_2.txt'
-GET -v 'http://localhost:8007/data_3.json'
+-- This one doesn't work because our -d parser on UDPHttpc client isn't picking up the 'creating a new file'
+post -d 'creating a new file' 'http://localhost:8080/data1.txt'
 
-POST -H "Content-Type: text/plain" --data "post with header values" 'h'ttp://localhost:8007/data_1.txt'
+-- Same proble as above, I think
+post -h Content-Type:text/plain -d 'post with header values' 'http://localhost:8007'
+post -v -h Content-Type:application/json -h User-Agent:Ziad 'http://localhost:8007'
+post -v -d "replacing file 1 contents" 'http://localhost:8007/data_1.txt'
+post -v -d "creating a new file" 'http://localhost:8007/data1.txt'
 
-POST -v -d "replacing file 1 contents" 'http://localhost:8007/data_1.txt'
-POST -v -d "creating a new file" 'http://localhost:8007/data1.txt'
-
-POST -v -X PUT -d "should not work" 'localhost:8007/data_1.txt'
+post -v -X PUT -d "should not work" 'localhost:8007/data_1.txt'
