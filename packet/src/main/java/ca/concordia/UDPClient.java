@@ -6,10 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -23,9 +20,19 @@ public class UDPClient {
 
     private static final Logger logger = LoggerFactory.getLogger(UDPClient.class);
 
-    private static void createPacket(){}
+    private static void createPacket(String msg, InetSocketAddress serverAddr){
+        Packet p = new Packet.Builder()
+                .setType(0)
+                .setSequenceNumber(1L)
+                .setPortNumber(serverAddr.getPort())
+                .setPeerAddress(serverAddr.getAddress())
+                .setPayload(msg.getBytes())
+                .create();
+    }
 
-    private static void sendto(DatagramPacket pkt, InetAddress routerAddr) {}
+    private static void sendto(DatagramPacket pkt, InetAddress routerAddr) {
+
+    }
 
     private static void runClient(SocketAddress routerAddr, InetSocketAddress serverAddr) throws IOException {
         try(DatagramChannel channel = DatagramChannel.open()){
@@ -40,6 +47,19 @@ public class UDPClient {
             channel.send(p.toBuffer(), routerAddr);
 
             logger.info("Sending \"{}\" to router at {}", msg, routerAddr);
+
+            String message = "Hi S";
+            Packet pk1 = new Packet.Builder()
+                    .setType(0)
+                    .setSequenceNumber(1L)
+                    .setPortNumber(serverAddr.getPort())
+                    .setPeerAddress(serverAddr.getAddress())
+                    .setPayload(message.getBytes())
+                    .create();
+
+            DatagramPacket pkt = new DatagramPacket(pk1.toBytes(), pk1.toBytes().length, routerAddr);
+            DatagramSocket socket = new DatagramSocket();
+            socket.send(pkt);
 
             // Try to receive a packet within timeout.
             channel.configureBlocking(false);
