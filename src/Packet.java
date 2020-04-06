@@ -12,6 +12,7 @@ import java.nio.ByteOrder;
 // This Packet class is from the Assignment .zip file provided to us
 
 public class Packet {
+    // Source: https://javarevisited.blogspot.com/2011/08/enum-in-java-example-tutorial.html
 
     public static final int MIN_LEN = 11;
     public static final int MAX_LEN = 11 + 1024;

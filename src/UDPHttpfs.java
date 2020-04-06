@@ -1,8 +1,11 @@
+// Melanie Taing (40009850)
+// Ziad Hawa (40050712)
+// COMP 445
+// Nagi Basha
+// Assignment 3
+
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.channels.DatagramChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,12 +16,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class UDPHttpfs {
     private UDPHttpfs() { }
-    final static String SERVER_IP = "192.168.2.3";
+    final static String SERVER_IP = "localhost";
     final static int SERVER_PORT = 8007;
     final static String DEFAULT_DIRECTORY = "data/";
+    final static int ROUTER_PORT = 3000;
+    final static String ROUTER_IP = "localhost";
 
-    //initializing the hashmap with common extensions and content types
-    //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
+    // Initializing the hashmap with common extensions and content types
+    // Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
 
     public static void main(String[] args) {
         String contentDisp = "inline";
@@ -81,111 +86,6 @@ public class UDPHttpfs {
         }
     }
 
-/*
-    private static void server_socket(String directory, int server_port, boolean verbose, String contentDisp) {
-
-        // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
-        // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
-        //initializing the hashmap with common extensions and content types
-        //Source:https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types?fbclid=IwAR2STAFbQmgUA7oW6OQvGsR1oODTXBbR8tupP2DQ0RV5Ta0uUPIJPACaNXY
-        HashMap<String, String> extensionMap = new HashMap<>();
-        extensionMap.put(".xml", "application/xml");
-        extensionMap.put(".abw", "application/x-abiword");
-        extensionMap.put(".arc", "application/x-freearc");
-        extensionMap.put(".avi", "video/x-msvideo");
-        extensionMap.put(".css", "text/css");
-        extensionMap.put(".csv", "text/csv");
-        extensionMap.put(".doc", "application/msword");
-        extensionMap.put(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        extensionMap.put(".html", "text/html");
-        extensionMap.put(".js", "text/javascript");
-        extensionMap.put(".json", "application/json");
-        extensionMap.put(".pdf", "application/pdf");
-        extensionMap.put(".php", "application/php");
-        extensionMap.put(".txt", "text/plain");
-
-        try (ServerSocket server = new ServerSocket(server_port)) {
-            System.out.println("Server has been instantiated at port " + server_port);
-            // Server initialized and waits for client requests
-            while (true) {
-                System.out.println("\nWaiting for client requests...");
-                try (Socket socket = server.accept()) {
-                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-                    StringBuilder requestHeaders = new StringBuilder();
-                    StringBuilder payload = new StringBuilder();
-                    StringBuilder response = new StringBuilder();
-                    String userAgent = null;
-                    // Source: https://stackoverflow.com/questions/3033755/reading-post-data-from-html-form-sent-to-serversocket
-                    String headerLine = null;
-
-                    try {
-                        while((headerLine = in.readLine()).length() != 0){
-                            if (headerLine.contains("User-Agent"))
-                                userAgent = headerLine;
-                            requestHeaders.append(headerLine + "\n");
-                        }
-                    } catch (NullPointerException e) {
-                        if (verbose) {
-                            System.out.println("Header line is empty");
-                        }
-                    }
-
-                    //code to read the post payload data
-                    while(in.ready()){
-                        payload.append((char) in.read());
-                    }
-
-                    // Get the first line containing the HTTP response
-                    String requestLine = requestHeaders.toString();
-
-                    System.out.println(requestLine);
-                    String contentType = "";
-                    if(requestLine.contains("/.")){
-                        contentType = extensionMap.get(requestLine.substring(requestLine.indexOf("."), requestLine.indexOf("HTTP")).trim());
-                    } else contentType = "folder";
-
-                    // Process HTTP Request
-                        boolean directoryForbidden = false;
-                        if (requestLine.contains("HTTP")) {
-                            String requestType = requestLine.substring(0, requestLine.indexOf("HTTP"));
-                            String httpVersion = requestLine.substring(requestLine.indexOf("HTTP"), requestLine.indexOf("\n"));
-                            if (directory.length() >= 4) {
-                                if (requestLine.contains("/..") || requestLine.contains("/src") || requestLine.contains ("out") || directory.substring(0, 4).equalsIgnoreCase("out") || directory.substring(0, 4).equalsIgnoreCase("src")) {
-                                    directory = DEFAULT_DIRECTORY;
-                                    System.out.println("Directory is not accessible by client. Setting directory to data/");
-                                    directoryForbidden = true;
-                                }
-                            }
-                            if (!directoryForbidden) {
-                                if (requestType.toString().contains("GET")) {
-                                    String get = GET(requestLine, directory, httpVersion, userAgent, contentType, contentDisp, verbose);
-                                    response.append(get);
-                                }
-
-                                else if (requestType.toString().contains("POST")) {
-                                    String post = POST(directory, httpVersion, userAgent, requestType, payload.toString(), verbose);
-                                    response.append(post);
-                                } else {
-                                    response.append(httpVersion + " 400 Bad Request \n" + userAgent + "\r\n\r\n");
-                                }
-                            } else {
-                                response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
-                            }
-                        }
-                    // Send the response back
-                    out.print(response.toString() + "\n");
-                    out.close();
-                    in.close();
-                    socket.close();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-*/
     private static void server_socket(String directory, int server_port, boolean verbose, String contentDisp) throws IOException {
         // Source #1: https://github.com/SebastienBah/COMP445TA/blob/master/Lab02/httpfs/httpfs.java
         // Source #2: https://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
@@ -208,32 +108,78 @@ public class UDPHttpfs {
         extensionMap.put(".txt", "text/plain");
 
         // Reference: UDPServer.java provided to us
-        try (DatagramChannel channel = DatagramChannel.open()) {
+        try {
+            InetAddress routerAddr = InetAddress.getByName(ROUTER_IP);
+            InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
+            DatagramSocket socket = new DatagramSocket(server_port, serverAddr);
             // Server initialized and waits for client requests
-            // channel.bind(new InetSocketAddress(SERVER_IP, server_port)); // Doesn't work
-            channel.bind(new InetSocketAddress(server_port));
-            System.out.printf("INFO: EchoServer is listening at %s\n", channel.getLocalAddress());
-            ByteBuffer buf = ByteBuffer
-                    .allocate(Packet.MAX_LEN)
-                    .order(ByteOrder.BIG_ENDIAN);
-            for (; ; ) {
-                buf.clear();
-                SocketAddress router = channel.receive(buf);
-                // Parse a packet from the received raw data.
-                buf.flip();
-                Packet packet = Packet.fromBuffer(buf);
-                buf.flip();
+            System.out.printf("INFO: EchoServer is listening at %s:%s\n", serverAddr, server_port);
 
-                InetAddress clientAddr = packet.getPeerAddress();
-                int clientPort = packet.getPeerPort();
-                Long sequenceNumber = packet.getSequenceNumber();
-                int type = packet.getType();
-                String clientPayload = new String(packet.getPayload(), UTF_8);
+            for (; ; ) {
+                byte[] payloadBuf;
+                byte[] synBuf = new byte[Packet.MAX_LEN];
+                synAckLoop:
+                    while(true) {
+                        // We wait until we get a SYN from client
+                        DatagramPacket getSyn = new DatagramPacket(synBuf, synBuf.length);
+                        socket.receive(getSyn);
+
+                        // Check if packet is SYN
+                        Packet resp = Packet.fromBytes(synBuf);
+
+                        if (PacketType.SYN.value() == resp.getType()) {
+                            // We received SYN from Client, send SYN_ACK to client
+                            System.out.printf("---------------------------------------------------\n");
+                            System.out.printf("INFO: SYN received from Client. Send back SYN-ACK\n");
+                            System.out.printf("---------------------------------------------------\n");
+
+                            Packet synAck = new Packet.Builder()
+                                    .setType(PacketType.SYN_ACK.value())
+                                    .setSequenceNumber(100)
+                                    .setPortNumber(resp.getPeerPort())
+                                    .setPeerAddress(resp.getPeerAddress())
+                                    .setPayload(new byte[0])
+                                    .create();
+
+                            DatagramPacket synAckPacket = new DatagramPacket(synAck.toBytes(), synAck.toBytes().length,
+                                    routerAddr, ROUTER_PORT);
+
+                            socket.send(synAckPacket);
+
+                            byte[] ackBuf = new byte[Packet.MAX_LEN];
+
+                            // Source: https://stackoverflow.com/questions/12363078/adding-timeout-to-datagramsocket-receive
+                            while(true) {
+                                // Wait for ACK and payload (optional) from Client
+                                DatagramPacket ackPkt = new DatagramPacket(ackBuf, ackBuf.length);
+                                try {
+                                    socket.receive(ackPkt);
+                                } catch (SocketTimeoutException e) {
+                                    // SEND SYN-ACK AGAIN IF TIMEOUT
+                                    socket.send(synAckPacket);
+                                    continue;
+                                }
+                                Packet ackPacket = Packet.fromBytes(ackBuf);
+                                // Received ACK and payload
+                                if (PacketType.ACK.value() == ackPacket.getType()) {
+                                    payloadBuf = ackBuf;    // Set payload to be processed
+                                    break synAckLoop;
+                                }
+                            }
+                        }
+                    }
+                // Parse a packet from the received raw data.
+                Packet responsePkt = Packet.fromBytes(payloadBuf);
+                InetAddress clientAddr = responsePkt.getPeerAddress();
+                int clientPort = responsePkt.getPeerPort();
+                Long sequenceNumber = responsePkt.getSequenceNumber();
+                int type = responsePkt.getType();
+                String clientPayload = new String(responsePkt.getPayload(), StandardCharsets.UTF_8);
                 System.out.printf("---------------------------------------------------\n");
-                System.out.printf("RCVD: Packet: %s\n", packet);
+                System.out.printf("RCVD: Packet: %s\n", responsePkt);
                 System.out.printf("Type: %s\n", type);
                 System.out.printf("Sequence number: %s\n", sequenceNumber);
-                System.out.printf("Router: %s\n", router);
+                System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
                 System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
                 System.out.printf("Payload:\n%s\n", clientPayload);
                 System.out.printf("---------------------------------------------------\n");
@@ -288,19 +234,20 @@ public class UDPHttpfs {
                         response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
                     }
 
-                    Packet resp = packet.toBuilder()
-                            .setType(1)
+                    Packet resp = responsePkt.toBuilder()
+                            .setType(PacketType.ACK.value())
                             .setSequenceNumber(sequenceNumber)
                             .setPortNumber(clientPort)
                             .setPeerAddress(clientAddr)
                             .setPayload(response.toString().getBytes())
                             .create();
-                    channel.send(resp.toBuffer(), router);
+                    DatagramPacket respPacket = new DatagramPacket(resp.toBytes(), resp.toBytes().length, routerAddr, ROUTER_PORT);
+                    socket.send(respPacket);
                     System.out.printf("---------------------------------------------------\n");
                     System.out.printf("SEND: Packet: %s\n", resp);
                     System.out.printf("Type: %s\n", type);
                     System.out.printf("Sequence number: %s\n", sequenceNumber);
-                    System.out.printf("Router: %s\n", router);
+                    System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
                     System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
                     String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
                     System.out.printf("Payload:\n%s\n",  payload);
@@ -376,7 +323,7 @@ public class UDPHttpfs {
                 if (verbose) {
                 returned.append(httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n");
                 }
-                returned.append("File/Directory Name\t\t\t\tType\n");
+                returned.append(String.format("%-30s%-15s\n", "File/Directory Name", "Type"));
                 for (int i = 0; i < filesInDirectory.length; i++){
                     String fileNameComplete = filesInDirectory[i].getName();
                     String fileName;
@@ -388,7 +335,7 @@ public class UDPHttpfs {
                         fileName = fileNameComplete.trim();
                         fileType = "Folder";
                     }
-                    returned.append(fileName).append("\t\t\t\t\t\t").append(fileType).append("\n"); //FilenameUtils.getExtension(filesInDirectory[i])
+                    returned.append(String.format("%-30s%-15s\n", fileName, fileType)); //FilenameUtils.getExtension(filesInDirectory[i])
                 }
 
             } else returned.append(httpVersion + " 204 No Content " + "\r\n" + userAgent + "\r\n\r\n" + "Directory is empty.\r\n");
@@ -409,32 +356,32 @@ public class UDPHttpfs {
             System.out.println("Processing POST request");
             System.out.println(requestLine + body);
             System.out.println("Attempting to write file " + fileDirectory);
+            System.out.println("Body " + body);
         }
 
         try {
             // Check if the file exists
             File file = new File(fileDirectory);
-            if (file.createNewFile()) {
-                String response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n\r\n" +
-                        "File created successfully.\r\n";
-                if (verbose) {
-                    System.out.println(response);
-                }
-                return response;
-            }
-
-            Writer fileWriter = new FileWriter(fileDirectory, false);
-            fileWriter.write(body);
+            boolean fileCreated = file.createNewFile();
+            String response = "";
+            FileWriter fileWriter = new FileWriter(file, false);
+            fileWriter.write(body.trim());
+            fileWriter.flush();
             fileWriter.close();
-            if (verbose) {
-                System.out.println("Successfully written to the file.");
+            if (fileCreated) {
+                response = httpVersion + " 201 Created " + "\r\n" + userAgent + "\r\n\r\n" +
+                        "File created successfully. " +  fileDirectory + "\r\n";
+                if (verbose) {
+                    System.out.println("File created successfully " + fileDirectory);
+                }
+            } else {
+                response = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n\r\n" +
+                        "Successfully written to the file" + fileDirectory + "\r\n";
+                if (verbose) {
+                    System.out.println("Successfully written to the file " + fileDirectory);
+                }
             }
-            String okResponse = httpVersion + " 200 OK " + "\r\n" + userAgent + "\r\n\r\n" +
-                    "Successfully written to the file.\r\n";
-            if (verbose) {
-                System.out.println(okResponse);
-            }
-            return okResponse;
+             return response;
         } catch (IOException e) {
             if (verbose) {
                 System.out.println("File cannot be overwritten\r\n");
