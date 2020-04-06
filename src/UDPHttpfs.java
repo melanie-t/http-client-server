@@ -125,19 +125,23 @@ public class UDPHttpfs {
                         socket.receive(getSyn);
 
                         // Check if packet is SYN
-                        Packet resp = Packet.fromBytes(synBuf);
+                        Packet synPkt = Packet.fromBytes(synBuf);
 
-                        if (PacketType.SYN.value() == resp.getType()) {
+                        if (PacketType.SYN.getValue() == synPkt.getType()) {
                             // We received SYN from Client, send SYN_ACK to client
                             System.out.printf("---------------------------------------------------\n");
-                            System.out.printf("INFO: SYN received from Client. Send back SYN-ACK\n");
+                            System.out.printf("RCVD: Packet: %s\n", synPkt);
+                            System.out.printf("Type: %s (%s)\n", PacketType.valueOf(synPkt.getType()), synPkt.getType());
+                            System.out.printf("Sequence number: %s\n", synPkt.getSequenceNumber());
+                            System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
+                            System.out.printf("Client: %s:%s\n", synPkt.getPeerAddress(), synPkt.getPeerPort());
                             System.out.printf("---------------------------------------------------\n");
 
                             Packet synAck = new Packet.Builder()
-                                    .setType(PacketType.SYN_ACK.value())
+                                    .setType(PacketType.SYN_ACK.getValue())
                                     .setSequenceNumber(100)
-                                    .setPortNumber(resp.getPeerPort())
-                                    .setPeerAddress(resp.getPeerAddress())
+                                    .setPortNumber(synPkt.getPeerPort())
+                                    .setPeerAddress(synPkt.getPeerAddress())
                                     .setPayload(new byte[0])
                                     .create();
 
@@ -145,6 +149,13 @@ public class UDPHttpfs {
                                     routerAddr, ROUTER_PORT);
 
                             socket.send(synAckPacket);
+                            System.out.printf("---------------------------------------------------\n");
+                            System.out.printf("SEND: Packet: %s\n", synAck);
+                            System.out.printf("Type: %s (%s)\n", PacketType.valueOf(synAck.getType()), synAck.getType());
+                            System.out.printf("Sequence number: %s\n", synAck.getSequenceNumber());
+                            System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
+                            System.out.printf("Client: %s:%s\n", synAck.getPeerAddress(), synAck.getPeerPort());
+                            System.out.printf("---------------------------------------------------\n");
 
                             byte[] ackBuf = new byte[Packet.MAX_LEN];
 
@@ -161,7 +172,7 @@ public class UDPHttpfs {
                                 }
                                 Packet ackPacket = Packet.fromBytes(ackBuf);
                                 // Received ACK and payload
-                                if (PacketType.ACK.value() == ackPacket.getType()) {
+                                if (PacketType.ACK.getValue() == ackPacket.getType()) {
                                     payloadBuf = ackBuf;    // Set payload to be processed
                                     break synAckLoop;
                                 }
@@ -173,11 +184,11 @@ public class UDPHttpfs {
                 InetAddress clientAddr = responsePkt.getPeerAddress();
                 int clientPort = responsePkt.getPeerPort();
                 Long sequenceNumber = responsePkt.getSequenceNumber();
-                int type = responsePkt.getType();
                 String clientPayload = new String(responsePkt.getPayload(), StandardCharsets.UTF_8);
                 System.out.printf("---------------------------------------------------\n");
                 System.out.printf("RCVD: Packet: %s\n", responsePkt);
-                System.out.printf("Type: %s\n", type);
+                System.out.printf("Type: %s (%s)\n", PacketType.valueOf(responsePkt.getType()),
+                        responsePkt.getType());
                 System.out.printf("Sequence number: %s\n", sequenceNumber);
                 System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
                 System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
@@ -234,22 +245,22 @@ public class UDPHttpfs {
                         response.append(httpVersion + " 403 Forbidden \r\n" + userAgent + "\r\n\r\n" + "Directory is not accessible.");
                     }
 
-                    Packet resp = responsePkt.toBuilder()
-                            .setType(PacketType.ACK.value())
+                    Packet synResp = responsePkt.toBuilder()
+                            .setType(PacketType.ACK.getValue())
                             .setSequenceNumber(sequenceNumber)
                             .setPortNumber(clientPort)
                             .setPeerAddress(clientAddr)
                             .setPayload(response.toString().getBytes())
                             .create();
-                    DatagramPacket respPacket = new DatagramPacket(resp.toBytes(), resp.toBytes().length, routerAddr, ROUTER_PORT);
+                    DatagramPacket respPacket = new DatagramPacket(synResp.toBytes(), synResp.toBytes().length, routerAddr, ROUTER_PORT);
                     socket.send(respPacket);
                     System.out.printf("---------------------------------------------------\n");
-                    System.out.printf("SEND: Packet: %s\n", resp);
-                    System.out.printf("Type: %s\n", type);
+                    System.out.printf("SEND: Packet: %s\n", synResp);
+                    System.out.printf("Type: %s (%s)\n", PacketType.valueOf(synResp.getType()), synResp.getType());
                     System.out.printf("Sequence number: %s\n", sequenceNumber);
                     System.out.printf("Router: %s:%s\n", routerAddr, ROUTER_PORT);
                     System.out.printf("Client: %s:%s\n", clientAddr, clientPort);
-                    String payload = new String(resp.getPayload(), StandardCharsets.UTF_8);
+                    String payload = new String(synResp.getPayload(), StandardCharsets.UTF_8);
                     System.out.printf("Payload:\n%s\n",  payload);
                     System.out.printf("---------------------------------------------------\n");
                 }

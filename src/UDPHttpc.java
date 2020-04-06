@@ -271,21 +271,15 @@ public class UDPHttpc {
         SocketAddress routerAddress = new InetSocketAddress(routerHost, routerPort);
         InetSocketAddress serverAddress = new InetSocketAddress(serverHost, serverPort);
 
-        // Hand-shake
-        // SYN: 0
-        // SYN-ACK: 1
-        // ACK: 2
-        // DATA: 3
         try {
             // Reference: UDPClient.java provided to us
-            int type = 0;
             long sequenceNumber = 1L;
 
             try {
                 // TCP Handshake (SYN, SYN_ACK, ACK)
                 // Send SYN to server
                 Packet synPkt = new Packet.Builder()
-                        .setType(PacketType.SYN.value())
+                        .setType(PacketType.SYN.getValue())
                         .setSequenceNumber(0)
                         .setPortNumber(serverAddress.getPort())
                         .setPeerAddress(serverAddress.getAddress())
@@ -294,7 +288,7 @@ public class UDPHttpc {
                 DatagramPacket synPacket = new DatagramPacket(synPkt.toBytes(), synPkt.toBytes().length, routerAddr, routerPort);
 
                 Packet payloadP = new Packet.Builder()
-                        .setType(PacketType.ACK.value())
+                        .setType(PacketType.ACK.getValue())
                         .setSequenceNumber(1)
                         .setPortNumber(serverAddress.getPort())
                         .setPeerAddress(serverAddress.getAddress())
@@ -302,33 +296,52 @@ public class UDPHttpc {
                         .create();
                 DatagramPacket payloadPacket = new DatagramPacket(payloadP.toBytes(), payloadP.toBytes().length,
                         routerAddr, routerPort);
-                
-                byte[] synAckBuff = new byte[Packet.MAX_LEN];
 
+                socket.send(synPacket); // Send SYN
+                System.out.printf("---------------------------------------------------\n");
+                System.out.printf("SEND: Packet: %s\n", synPkt);
+                System.out.printf("Type: %s (%s)\n", PacketType.valueOf(synPkt.getType()), synPkt.getType());
+                if (verbose) {
+                    System.out.printf("Sequence number: %s\n", synPkt.getSequenceNumber());
+                    System.out.printf("Router: %s:%s\n", routerAddr, routerPort);
+                    System.out.printf("Server: %s:%s\n", synPkt.getPeerAddress(), synPkt.getPeerPort());
+                }
+                System.out.printf("---------------------------------------------------\n");
+                byte[] synAckBuff = new byte[Packet.MAX_LEN];
                 while(true) {
                     DatagramPacket getSynAck = new DatagramPacket(synAckBuff, synAckBuff.length);
                     try {
                         socket.receive(getSynAck);
-                        System.out.println("INFO: SYN-ACK received from Server");
                     } catch (SocketTimeoutException e) {
                         // resend
                         socket.send(synPacket);
                         continue;
                     }
                     // Check data received if it's SYN_ACK for handshake confirmation
-                    Packet resp = Packet.fromBytes(synAckBuff);
-                    if (PacketType.SYN_ACK.value() == resp.getType()) {
+                    Packet synAckPkt = Packet.fromBytes(synAckBuff);
+                    if (PacketType.SYN_ACK.getValue() == synAckPkt.getType()) {
+                        System.out.printf("---------------------------------------------------\n");
+                        System.out.printf("RCVD: Packet: %s\n", synAckPkt);
+                        System.out.printf("Type: %s (%s)\n", PacketType.valueOf(synAckPkt.getType()), synAckPkt.getType());
+                        if (verbose) {
+                            System.out.printf("Sequence number: %s\n", synAckPkt.getSequenceNumber());
+                            System.out.printf("Router: %s:%s\n", routerAddr, routerPort);
+                            System.out.printf("Server: %s:%s\n", synAckPkt.getPeerAddress(), synAckPkt.getPeerPort());
+                        }
+                        System.out.printf("---------------------------------------------------\n");
+
                         // We received SYN_ACK from Server, send ACK and payload to server
                         System.out.printf("---------------------------------------------------\n");
                         System.out.printf("SEND: ACK Packet: %s\n", payloadP);
+                        System.out.printf("Type: %s (%s)\n", PacketType.valueOf(payloadP.getType()), payloadP.getType());
                         if (verbose) {
-                            System.out.printf("Type: %s\n", type);
                             System.out.printf("Sequence number: %s\n", sequenceNumber);
                             System.out.printf("Router: %s\n", routerAddress);
                             System.out.printf("Server: %s:%s\n", serverAddress.getAddress(), serverAddress.getPort());
                             String payload = new String(payloadP.getPayload(), StandardCharsets.UTF_8);
                             System.out.printf("%s\n", payload);
                         }
+                        System.out.printf("---------------------------------------------------\n");
                         System.out.printf("---------------------------------------------------\n");
                         System.out.printf("INFO: Waiting for the response\n");
                         System.out.printf("---------------------------------------------------\n");
@@ -340,10 +353,10 @@ public class UDPHttpc {
                     }
                 }
                 // We process the response from server
-                byte[] respBuf = new byte[Packet.MAX_LEN];
+                byte[] ackRespBuf = new byte[Packet.MAX_LEN];
                 // Source: https://stackoverflow.com/questions/12363078/adding-timeout-to-datagramsocket-receive
                 while(true) {
-                    DatagramPacket respPkt = new DatagramPacket(respBuf, respBuf.length);
+                    DatagramPacket respPkt = new DatagramPacket(ackRespBuf, ackRespBuf.length);
                     try {
                         socket.receive(respPkt);
                     } catch (SocketTimeoutException e) {
@@ -352,20 +365,16 @@ public class UDPHttpc {
                         continue;
                     }
                     // check received data...
-                    Packet resp = Packet.fromBytes(respBuf);
-                    InetAddress peerAddr = resp.getPeerAddress();
-                    int peerPort = resp.getPeerPort();
-                    Long respSequenceNumber = resp.getSequenceNumber();
-                    int respType = resp.getType();
+                    Packet ackRespPkt = Packet.fromBytes(ackRespBuf);
                     System.out.printf("---------------------------------------------------\n");
-                    System.out.printf("RCVD: Packet: %s\n", resp);
+                    System.out.printf("RCVD: Packet: %s\n", ackRespPkt);
+                    System.out.printf("Type: %s (%s)\n", PacketType.valueOf(ackRespPkt.getType()), ackRespPkt.getType());
                     if (verbose) {
-                        System.out.printf("Type: %s\n", respType);
-                        System.out.printf("Sequence number: %s\n", respSequenceNumber);
+                        System.out.printf("Sequence number: %s\n",  ackRespPkt.getSequenceNumber());
                         System.out.printf("Router: %s:%s\n", routerAddr, routerPort);
-                        System.out.printf("Server: %s:%s\n", peerAddr, peerPort);
+                        System.out.printf("Server: %s:%s\n", ackRespPkt.getPeerAddress(), ackRespPkt.getPeerPort());
                     }
-                    String respPayload = new String(resp.getPayload(), StandardCharsets.UTF_8);
+                    String respPayload = new String(ackRespPkt.getPayload(), StandardCharsets.UTF_8);
                     System.out.printf("%s\n", respPayload);
                     System.out.printf("---------------------------------------------------\n");
                     break;

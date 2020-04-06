@@ -1,5 +1,5 @@
 get 'http://localhost:8007/'
-get 'http://localhost:8007/data_1.txt'
+get -v 'http://localhost:8007/data_1.txt'
 get -v 'http://localhost:8007/data_2.txt'
 get -v 'http://localhost:8007/data_3.json'
 
