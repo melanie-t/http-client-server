@@ -8,8 +8,8 @@ Instructions to run
 
 1. Add the project to your choice of IDE
 2. Build the project
-3. Run UDPHttpfs.java and enter any configurations (default port is 8007)
-4. Run UDPHttpc.java and enter valid HTTP commands
+3. Run UDPHttpfs.java and input any configurations (default port is 8007), then start the server
+4. Run UDPHttpc.java and input valid HTTP commands
 
 Implemented:
 - TCP Handshake
